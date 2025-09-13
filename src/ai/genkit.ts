@@ -1,7 +1,8 @@
 import {genkit} from 'genkit';
-import {next} from '@genkit-ai/next';
+import {googleAI} from '@genkit-ai/googleai';
+import {nextPlugin} from '@genkit-ai/next';
 
 export const ai = genkit({
-  plugins: [next()],
+  plugins: [nextPlugin(), googleAI()],
   model: 'googleai/gemini-2.5-flash',
 });
