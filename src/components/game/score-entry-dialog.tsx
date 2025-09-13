@@ -21,8 +21,7 @@ import { Switch } from "@/components/ui/switch";
 import type { GameRound, PapluType, Player } from "@/lib/types";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Checkbox } from "../ui/checkbox";
-import { calculateScores } from "@/ai/flows/calculate-scores-flow";
+import { calculateScores } from "@/lib/score-calculator";
 import { Loader2 } from "lucide-react";
 
 interface ScoreEntryDialogProps {
@@ -99,7 +98,7 @@ export function ScoreEntryDialog({
             attaKasu,
         };
 
-        const calculatedScores = await calculateScores({ round: roundData, players });
+        const calculatedScores = calculateScores({ round: roundData, players });
 
         const newRound: GameRound = {
             id: editingRound ? editingRound.id : new Date().getTime(),
