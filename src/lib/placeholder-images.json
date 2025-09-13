@@ -1,3 +1,40 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "login-background",
+      "description": "people playing cards in a cozy setting",
+      "imageUrl": "https://picsum.photos/seed/paplu1/1920/1080",
+      "imageHint": "card game"
+    },
+    {
+      "id": "dashboard-hero",
+      "description": "An elegant table setup for a card game",
+      "imageUrl": "https://picsum.photos/seed/paplu2/1200/400",
+      "imageHint": "card table"
+    },
+    {
+      "id": "card-player-1",
+      "description": "Portrait of a person playing cards",
+      "imageUrl": "https://picsum.photos/seed/player1/100/100",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "card-player-2",
+      "description": "Portrait of another person playing cards",
+      "imageUrl": "https://picsum.photos/seed/player2/100/100",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "card-player-3",
+      "description": "Portrait of a third person playing cards",
+      "imageUrl": "https://picsum.photos/seed/player3/100/100",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "card-player-4",
+      "description": "Portrait of a fourth person playing cards",
+      "imageUrl": "https://picsum.photos/seed/player4/100/100",
+      "imageHint": "person portrait"
+    }
+  ]
 }
