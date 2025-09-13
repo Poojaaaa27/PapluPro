@@ -10,17 +10,20 @@ export interface Player {
   name: string;
 }
 
+export type PapluType = "single" | "double" | "triple" | null;
+
 export interface GameRound {
   id: number;
   winnerId: string;
-  paplu: "single" | "double" | "triple" | null;
-  scoot: {
-    isScoot: boolean;
-    scootedPlayers: string[];
-  };
+  paplu: PapluType;
+  scoot: boolean;
+  midScoot: boolean;
+  full: boolean;
+  attaKasu: boolean;
   scores: Record<string, number>; // Player ID -> score
   pointValue: number;
 }
+
 
 export interface GameSession {
   id: string;

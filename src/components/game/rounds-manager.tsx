@@ -2,9 +2,10 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { GameRound, Player } from "@/lib/types";
-import { Crown, Edit, PlusCircle, TrendingUp, Users } from "lucide-react";
+import { Crown, Edit, PlusCircle, TrendingUp, Users, Shield, Bomb, Star, Bolt } from "lucide-react";
 import { ScoreEntryDialog } from "./score-entry-dialog";
 import { useState } from "react";
+import { Badge } from "../ui/badge";
 
 interface RoundsManagerProps {
     rounds: GameRound[];
@@ -58,30 +59,31 @@ export function RoundsManager({ rounds, players, setRounds, isOrganizer }: Round
                                     </CardDescription>
                                 </div>
                                 {isOrganizer && <Button variant="ghost" size="icon" onClick={() => handleEditRound(round)}><Edit className="w-4 h-4"/></Button>}
-                            </CardHeader>
+                            </Header>
                             <CardContent>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                     {players.map(player => (
                                         <div key={player.id} className="flex flex-col p-2 bg-muted/50 rounded-md">
                                             <span className="font-semibold text-muted-foreground">{player.name}</span>
-                                            <span className={`text-lg font-bold ${round.scores[player.id] > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                                {round.scores[player.id] > 0 ? '+' : ''}{round.scores[player.id]}
+                                            <span className={`text-lg font-bold ${round.scores[player.id] >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                                {round.scores[player.id] >= 0 ? '+' : ''}{round.scores[player.id]}
                                             </span>
                                         </div>
                                     ))}
                                 </div>
                             </CardContent>
-                             <CardFooter className="text-xs text-muted-foreground justify-between">
+                             <CardFooter className="text-xs text-muted-foreground justify-between flex-wrap gap-2">
                                 <div className="flex items-center gap-1">
                                     <TrendingUp className="w-4 h-4"/>
                                     <span>Point Value: {round.pointValue}</span>
                                 </div>
-                                 {round.scoot.isScoot && (
-                                    <div className="flex items-center gap-1 text-destructive font-semibold">
-                                        <Users className="w-4 h-4"/>
-                                        <span>Scoot!</span>
-                                    </div>
-                                )}
+                                <div className="flex flex-wrap gap-2">
+                                    {round.paplu && <Badge variant="secondary" className="capitalize"><Star className="w-3 h-3 mr-1"/>{round.paplu} Paplu</Badge>}
+                                    {round.scoot && <Badge variant="destructive"><Users className="w-3 h-3 mr-1"/>Scoot</Badge>}
+                                    {round.midScoot && <Badge variant="destructive"><Shield className="w-3 h-3 mr-1"/>Mid Scoot</Badge>}
+                                    {round.full && <Badge variant="destructive"><Bomb className="w-3 h-3 mr-1"/>Full</Badge>}
+                                    {round.attaKasu && <Badge variant="outline"><Bolt className="w-3 h-3 mr-1"/>Atta Kasu</Badge>}
+                                </div>
                             </CardFooter>
                         </Card>
                     )

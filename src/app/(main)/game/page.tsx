@@ -6,21 +6,17 @@ import { RoundsManager } from "@/components/game/rounds-manager";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
-import type { GameSession, Player, GameRound } from "@/lib/types";
+import type { Player, GameRound } from "@/lib/types";
 import { Save, Share2, SquarePlus, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 const mockPlayers: Player[] = [
-  { id: "1", name: "Alice" },
-  { id: "2", name: "Bob" },
-  { id: "3", name: "Charlie" },
-  { id: "4", name: "Diana" },
+  { id: "1", name: "jo" },
+  { id: "2", name: "so" },
+  { id: "3", name: "fo" },
 ];
 
-const mockRounds: GameRound[] = [
-    { id: 1, winnerId: "1", paplu: "single", scoot: { isScoot: false, scootedPlayers: [] }, scores: { "1": 10, "2": -5, "3": -5, "4": 0 }, pointValue: 10 },
-    { id: 2, winnerId: "3", paplu: null, scoot: { isScoot: true, scootedPlayers: ["2"] }, scores: { "1": -10, "2": -20, "3": 30, "4": 0 }, pointValue: 10 },
-];
+const mockRounds: GameRound[] = [];
 
 
 export default function GamePage() {
@@ -33,6 +29,11 @@ export default function GamePage() {
       location: "The Den",
       teamName: "The High Rollers"
   });
+
+  const resetGame = () => {
+    setRounds([]);
+    // Maybe show a confirmation dialog here in a real app
+  }
 
   return (
     <div className="py-8">
@@ -48,7 +49,7 @@ export default function GamePage() {
         {isOrganizer && (
           <div className="flex gap-2">
             <Button variant="outline"><Save className="mr-2" /> Save Game</Button>
-            <Button variant="destructive"><Trash2 className="mr-2" /> Reset</Button>
+            <Button variant="destructive" onClick={resetGame}><Trash2 className="mr-2" /> Reset</Button>
           </div>
         )}
       </div>
