@@ -47,10 +47,10 @@ export function RoundsManager({ rounds, players, setRounds, isOrganizer }: Round
             </Card>
         ) : (
             <div className="space-y-4">
-                {rounds.map((round, index) => {
+                {rounds.map((round) => {
                     const winner = players.find(p => p.id === round.winnerId);
                     return (
-                        <Card key={index} className="transition-all hover:shadow-md">
+                        <Card key={round.id} className="transition-all hover:shadow-md">
                             <CardHeader className="flex flex-row justify-between items-start">
                                 <div>
                                     <CardTitle className="font-headline text-xl">Round {round.id}</CardTitle>
@@ -59,7 +59,7 @@ export function RoundsManager({ rounds, players, setRounds, isOrganizer }: Round
                                     </CardDescription>
                                 </div>
                                 {isOrganizer && <Button variant="ghost" size="icon" onClick={() => handleEditRound(round)}><Edit className="w-4 h-4"/></Button>}
-                            </Header>
+                            </CardHeader>
                             <CardContent>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                     {players.map(player => (
