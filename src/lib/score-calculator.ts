@@ -66,7 +66,18 @@ export function calculateScores(input: ScoreCalculationInput): ScoreCalculationO
     }
 
     const finalWinnerScore = winnerBaseScore * multiplier;
-    const finalLoserScore = -finalWinnerScore;
+    
+    const loserCount = players.length - 1;
+    if (loserCount <= 0) {
+        // Handle case with 1 or 0 players to avoid division by zero
+        const scores: ScoreCalculationOutput = {};
+        if (players.length === 1 && players[0].id === round.winnerId) {
+            scores[players[0].id] = finalWinnerScore;
+        }
+         return scores;
+    }
+
+    const finalLoserScore = -(finalWinnerScore / loserCount);
 
     const scores: ScoreCalculationOutput = {};
     for (const player of players) {
