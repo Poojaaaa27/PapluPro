@@ -1,9 +1,10 @@
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, ReactNode, useContext } from "react";
-import type { Player, GameRound, GameRules } from "@/lib/types";
+import type { Player, GameRound } from "@/lib/types";
 import { calculateRoundScores } from "@/lib/score-parser";
 import { RulesContext } from "./rules-provider";
+import { format } from "date-fns";
 
 const mockPlayers: Player[] = [
   { id: "1", name: "jo" },
@@ -37,7 +38,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [gameDetails, setGameDetails] = useState({
     location: "Chennai",
     teamName: "Team 1",
-    date: "2025-08-12"
+    date: format(new Date(), 'yyyy-MM-dd')
   });
 
   const rulesContext = useContext(RulesContext);

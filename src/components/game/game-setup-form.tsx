@@ -6,12 +6,17 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import type { Player } from "@/lib/types";
 import { Trash2, UserPlus, Users } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { CalendarIcon } from 'lucide-react';
+import { Calendar } from '../ui/calendar';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface GameSetupFormProps {
     players: Player[];
     setPlayers: React.Dispatch<React.SetStateAction<Player[]>>;
-    gameDetails: { location: string, teamName: string };
-    setGameDetails: React.Dispatch<React.SetStateAction<{ location: string, teamName: string }>>;
+    gameDetails: { location: string; teamName: string; date: string; };
+    setGameDetails: React.Dispatch<React.SetStateAction<{ location: string; teamName: string; date: string; }>>;
     isOrganizer: boolean;
 }
 
@@ -45,6 +50,7 @@ export function GameSetupForm({ players, setPlayers, gameDetails, setGameDetails
                     <h3 className="font-headline text-lg mb-2">Game Details</h3>
                     <p><strong>Location:</strong> {gameDetails.location}</p>
                     <p><strong>Team Name:</strong> {gameDetails.teamName}</p>
+                    <p><strong>Date:</strong> {gameDetails.date ? format(new Date(gameDetails.date), "PPP") : 'Not set'}</p>
                 </div>
                 <div>
                     <h3 className="font-headline text-lg mb-2 flex items-center gap-2"><Users />Players</h3>
@@ -64,13 +70,41 @@ export function GameSetupForm({ players, setPlayers, gameDetails, setGameDetails
         <CardDescription>Configure the details for the current game session.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="location" className="font-headline">Location</Label>
-          <Input id="location" value={gameDetails.location} onChange={(e) => setGameDetails(prev => ({ ...prev, location: e.target.value }))} placeholder="e.g., Clubhouse" />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="teamName" className="font-headline">Team Name</Label>
-          <Input id="teamName" value={gameDetails.teamName} onChange={(e) => setGameDetails(prev => ({ ...prev, teamName: e.target.value }))} placeholder="e.g., The Aces" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+            <Label htmlFor="location" className="font-headline">Location</Label>
+            <Input id="location" value={gameDetails.location} onChange={(e) => setGameDetails(prev => ({ ...prev, location: e.target.value }))} placeholder="e.g., Clubhouse" />
+            </div>
+            <div className="space-y-2">
+            <Label htmlFor="teamName" className="font-headline">Team Name</Label>
+            <Input id="teamName" value={gameDetails.teamName} onChange={(e) => setGameDetails(prev => ({ ...prev, teamName: e.target.value }))} placeholder="e.g., The Aces" />
+            </div>
+             <div className="space-y-2">
+                <Label htmlFor="gameDate" className="font-headline">Date</Label>
+                <Popover>
+                    <PopoverTrigger asChild>
+                    <Button
+                        id="gameDate"
+                        variant={"outline"}
+                        className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !gameDetails.date && "text-muted-foreground"
+                        )}
+                    >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {gameDetails.date ? format(new Date(gameDetails.date), "PPP") : <span>Pick a date</span>}
+                    </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                    <Calendar
+                        mode="single"
+                        selected={gameDetails.date ? new Date(gameDetails.date) : undefined}
+                        onSelect={(date) => setGameDetails(prev => ({ ...prev, date: date ? format(date, 'yyyy-MM-dd') : '' }))}
+                        initialFocus
+                    />
+                    </PopoverContent>
+                </Popover>
+            </div>
         </div>
         <div className="space-y-4">
           <Label className="font-headline">Players</Label>
