@@ -56,29 +56,11 @@ export function RoundsTable({ rounds, players, totalScores, onStatusChange, isOr
                 <TableCell key={player.id} className="p-1">
                   <Input
                     type="text"
-                    className={cn(
-                      "text-center font-mono",
-                      (round.scores[player.id] ?? 0) > 0 && "text-green-600 font-bold",
-                      (round.scores[player.id] ?? 0) < 0 && "text-red-600 font-bold",
-                    )}
+                    className="text-center font-mono"
                     placeholder="-"
                     value={round.playerStatus[player.id] || ""}
                     onChange={(e) => onStatusChange(round.id, player.id, e.target.value)}
                     onFocus={(e) => e.target.select()}
-                    onBlur={(e) => {
-                      const score = round.scores[player.id];
-                      if(score !== undefined) {
-                        e.target.value = score.toString();
-                      }
-                    }}
-                    onKeyUp={(e) => {
-                       if (e.key === 'Enter') {
-                          const score = round.scores[player.id];
-                          if (score !== undefined) {
-                            (e.target as HTMLInputElement).value = score.toString();
-                          }
-                        }
-                    }}
                     disabled={!isOrganizer}
                   />
                 </TableCell>

@@ -38,23 +38,21 @@ export default function GamePage() {
 
   const handleStatusChange = useCallback((roundId: number, playerId: string, status: string) => {
     setRounds(prevRounds => {
-      const newRounds = [...prevRounds];
-      const roundIndex = newRounds.findIndex(r => r.id === roundId);
-      if (roundIndex === -1) return prevRounds;
-
-      const newPlayerStatus = { 
-        ...newRounds[roundIndex].playerStatus, 
-        [playerId]: status
-      };
-      
-      const newScores = calculateRoundScores(newPlayerStatus, players);
-
-      newRounds[roundIndex] = {
-        ...newRounds[roundIndex],
-        playerStatus: newPlayerStatus,
-        scores: newScores,
-      };
-
+      const newRounds = prevRounds.map(r => {
+        if (r.id === roundId) {
+          const newPlayerStatus = { 
+            ...r.playerStatus, 
+            [playerId]: status
+          };
+          const newScores = calculateRoundScores(newPlayerStatus, players);
+          return {
+            ...r,
+            playerStatus: newPlayerStatus,
+            scores: newScores,
+          };
+        }
+        return r;
+      });
       return newRounds;
     });
   }, [players]);
