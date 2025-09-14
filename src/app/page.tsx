@@ -30,7 +30,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
   const [name, setName] = useState("");
-  const [role, setRole] = useState<UserRole>("player");
+  const [role, setRole] = useState<UserRole>("viewer");
 
   const handleLogin = (e: FormEvent) => {
     e.preventDefault();
@@ -86,7 +86,6 @@ export default function LoginPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="organizer">Organizer</SelectItem>
-                  <SelectItem value="player">Player</SelectItem>
                   <SelectItem value="viewer">Viewer</SelectItem>
                 </SelectContent>
               </Select>

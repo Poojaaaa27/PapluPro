@@ -1,4 +1,4 @@
-export type UserRole = "organizer" | "player" | "viewer";
+export type UserRole = "organizer" | "viewer";
 
 export interface User {
   name: string;
