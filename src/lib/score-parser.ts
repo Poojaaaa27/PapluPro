@@ -3,7 +3,7 @@ import type { Player, GameRules } from "./types";
 
 /**
  * Parses a player's status code for a single round and calculates their individual point value.
- * This function is designed to handle complex, hyphenated codes and various combinations.
+ * This function handles complex, hyphenated codes and various combinations.
  * @param code The player's status code (e.g., "1P-25", "MS", "3C2P-F").
  * @param rules The current game rules with point values.
  * @returns The calculated point value for that player's status code.
@@ -16,34 +16,40 @@ export function parsePlayerStatus(code: string, rules: GameRules): number {
     if (upperCode === "D" || upperCode === "G") return 0;
 
     let score = 0;
-    
-    // Regex to find different parts of the code.
-    const papluMatch = upperCode.match(/(\d+)P/);
-    const statusMatch = upperCode.match(/(MS|S|F)/);
-    // This regex looks for a numeric part, which might be standalone or after a hyphen.
-    const numericPartMatch = upperCode.split('-').pop()?.match(/^\d+$/);
+    const parts = upperCode.split('-');
 
-    // Add points for Status (S, MS, F)
-    if (statusMatch) {
-        const status = statusMatch[1];
-        if (status === "S") score += rules.scoot;
-        else if (status === "MS") score += rules.midScoot;
-        else if (status === "F") score += rules.full;
-    }
-    
-    // Add points from numeric value
-    if (numericPartMatch) {
-        score += parseInt(numericPartMatch[0], 10) * rules.perPoint;
-    }
+    parts.forEach(part => {
+        const papluMatch = part.match(/(\d+)P/);
+        const statusMatch = part.match(/MS|S|F/);
+        const numericMatch = part.match(/^\d+$/);
 
-    // Add points for Paplu (Paplu is a penalty for losers, bonus for winners, handled in calculateRoundScores)
-    if (papluMatch) {
-        const papluCount = parseInt(papluMatch[1], 10);
-        // Note: Paplu points are added here but typically result in a negative score for losers.
-        // The calling function `calculateRoundScores` will handle making the final score negative.
-        if (papluCount === 1) score += rules.singlePaplu;
-        else if (papluCount === 2) score += rules.doublePaplu;
-        else if (papluCount === 3) score += rules.triplePaplu;
+        if (statusMatch) {
+            const status = statusMatch[0];
+            if (status === "S") score += rules.scoot;
+            else if (status === "MS") score += rules.midScoot;
+            else if (status === "F") score += rules.full;
+        }
+
+        if (papluMatch) {
+            const papluCount = parseInt(papluMatch[1], 10);
+            if (papluCount === 1) score += rules.singlePaplu;
+            else if (papluCount === 2) score += rules.doublePaplu;
+            else if (papluCount === 3) score += rules.triplePaplu;
+        }
+        
+        if (numericMatch && !papluMatch && !statusMatch) {
+             score += parseInt(numericMatch[0], 10) * rules.perPoint;
+        }
+    });
+
+    // Handle case where numeric points are appended, e.g. 1P-25
+    const lastPart = parts[parts.length - 1];
+    const numericSuffixMatch = lastPart.match(/^\d+$/);
+    if (parts.length > 1 && numericSuffixMatch) {
+        // Only add if it wasn't the primary parsed value of a single-part numeric string
+        if (parts.length > 1) {
+            score += parseInt(numericSuffixMatch[0], 10) * rules.perPoint;
+        }
     }
 
 
@@ -67,103 +73,74 @@ export function calculateRoundScores(
     is3CardGame: boolean
 ): Record<string, number> {
     const scores: Record<string, number> = {};
+    const basePoints: Record<string, number> = {};
     players.forEach(p => scores[p.id] = 0);
     
-    const winners = players.filter(p => (playerStatus[p.id] || "").toUpperCase().includes("3C"));
-    const gatePlayers = players.filter(p => (playerStatus[p.id] || "").toUpperCase().includes("G"));
-
-    // --- 3 Card Game Logic ---
-    if (is3CardGame && winners.length === 1) {
-        const winnerId = winners[0].id;
-        let totalLoserPoints = 0;
-
-        // Calculate initial points for all losers
-        const loserScores: Record<string, number> = {};
-        players.forEach(player => {
-            if (player.id !== winnerId) {
-                const status = playerStatus[player.id] || "";
-                const points = parsePlayerStatus(status, rules);
-                loserScores[player.id] = points;
-            } else {
-                 loserScores[player.id] = 0;
-            }
-        });
-
-        // Apply Gate rule
-        if (gatePlayers.length > 0) {
-            gatePlayers.forEach(gatePlayer => {
-                players.forEach(otherPlayer => {
-                    // Gate doubles other players' points, except for scoot players
-                    const otherPlayerStatus = (playerStatus[otherPlayer.id] || "").toUpperCase();
-                    if (otherPlayer.id !== gatePlayer.id && !otherPlayerStatus.includes("S")) {
-                        // If the other player is the winner, this logic doesn't apply.
-                        // We only double loser's points.
-                        if (otherPlayer.id !== winnerId) {
-                           loserScores[otherPlayer.id] *= 2;
-                        }
-                    }
-                });
-            });
-        }
-        
-        // Sum up final loser points and assign negative scores
-        players.forEach(player => {
-            if (player.id !== winnerId) {
-                scores[player.id] = -loserScores[player.id];
-                totalLoserPoints += loserScores[player.id];
-            }
-        });
-
-
-        // Add Atta Kasu for each loser
-        const loserCount = players.length - 1;
-        totalLoserPoints += loserCount * rules.attaKasu;
-
-        // The winner also gets points for their own status (e.g., paplus)
-        const winnerStatus = playerStatus[winnerId] || "";
-        const winnerBonusPoints = parsePlayerStatus(winnerStatus, rules);
-        totalLoserPoints += winnerBonusPoints;
-
-        // Assign final score to winner
-        scores[winnerId] = totalLoserPoints;
-
-        return scores;
-    }
-    
-    // --- Default Scoring Logic (No single winner in a 3-card game, or not a 3-card game) ---
-    // Score everyone individually.
-    const individualScores: Record<string, number> = {};
+    // 1. Calculate base points for everyone
     players.forEach(player => {
-        const status = (playerStatus[player.id] || "").trim().toUpperCase();
-        if (status) {
-            // A player with 3C in a non-winning round gets 0
-            if (status.includes("3C")) {
-                 individualScores[player.id] = 0;
-            } else {
-                 individualScores[player.id] = parsePlayerStatus(status, rules);
-            }
-        } else {
-            individualScores[player.id] = 0;
-        }
+        const status = playerStatus[player.id] || "";
+        basePoints[player.id] = parsePlayerStatus(status, rules);
     });
 
-    // Apply Gate rule for non-winner scenarios
+    // 2. Apply Gate (G) rule
+    const gatePlayers = players.filter(p => (playerStatus[p.id] || "").toUpperCase().includes("G"));
     if (gatePlayers.length > 0) {
+        // Make a mutable copy of basePoints to apply gate effect
+        const modifiedBasePoints = { ...basePoints };
         gatePlayers.forEach(gatePlayer => {
             players.forEach(otherPlayer => {
-                const otherPlayerStatus = (playerStatus[otherPlayer.id] || "").toUpperCase();
-                if(otherPlayer.id !== gatePlayer.id && !otherPlayerStatus.includes("S")) {
-                    individualScores[otherPlayer.id] *= 2;
+                if (otherPlayer.id !== gatePlayer.id) {
+                    const otherPlayerStatus = (playerStatus[otherPlayer.id] || "").toUpperCase();
+                    // Double points unless they have Scoot (S)
+                    if (!otherPlayerStatus.includes("S")) {
+                        // The doubling effect is cumulative if there are multiple gate players
+                         modifiedBasePoints[otherPlayer.id] = basePoints[otherPlayer.id] * (2 * gatePlayers.length)
+                    }
                 }
             });
         });
+        // Overwrite basePoints with the gate-modified points
+         Object.assign(basePoints, modifiedBasePoints);
     }
     
-    // Assign final negative scores
+    const winners = players.filter(p => (playerStatus[p.id] || "").toUpperCase().includes("3C"));
+
+    // --- 3 Card Game Logic with a single winner ---
+    if (is3CardGame && winners.length === 1) {
+        const winnerId = winners[0].id;
+        let totalPointsForWinner = 0;
+
+        // Calculate loser scores and sum them up for the winner
+        players.forEach(player => {
+            if (player.id !== winnerId) {
+                const loserPoints = basePoints[player.id];
+                // Loser's score is their points + attaKasu, made negative
+                scores[player.id] = -(loserPoints + rules.attaKasu);
+                // Winner gets the loser's points + attaKasu
+                totalPointsForWinner += loserPoints + rules.attaKasu;
+            }
+        });
+
+        // Winner also gets their own base points
+        totalPointsForWinner += basePoints[winnerId];
+
+        scores[winnerId] = totalPointsForWinner;
+        
+        return scores;
+    }
+    
+    // --- Fallback/No-Winner Logic ---
+    // This runs if it's not a 3-card game, or if there isn't exactly one winner.
+    // Each player's score is simply their own calculated points, made negative.
+    // This handles cases like "MS", "MS", "MS".
     players.forEach(player => {
-        scores[player.id] = -individualScores[player.id];
+        // If a player has "3C" in an invalid round, they get 0.
+        if ((playerStatus[player.id] || "").toUpperCase().includes("3C")) {
+            scores[player.id] = 0;
+        } else {
+            scores[player.id] = -basePoints[player.id];
+        }
     });
 
     return scores;
 }
-
