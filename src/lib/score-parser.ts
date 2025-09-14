@@ -49,9 +49,9 @@ export function calculateRoundScores(
         }
     });
 
-    // Case 1: Exactly one winner
-    if (winners.length === 1) {
-        const winnerId = winners[0];
+    // Case 1: Exactly one winner (or prioritize first winner if multiple)
+    if (winners.length >= 1) {
+        const winnerId = winners[0]; // Prioritize the first winner found
         
         // Calculate loser points and sum them up
         players.forEach(player => {
@@ -85,7 +85,7 @@ export function calculateRoundScores(
         return scores;
     }
 
-    // Case 3: Multiple winners (invalid round), so all scores are 0.
+    // Fallback for any other invalid state
     players.forEach(p => scores[p.id] = 0);
     return scores;
 }
