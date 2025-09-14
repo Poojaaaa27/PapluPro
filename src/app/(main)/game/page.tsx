@@ -1,7 +1,6 @@
 "use client";
 
 import { GameSetupForm } from "@/components/game/game-setup-form";
-import { LeaderboardTable } from "@/components/game/leaderboard-table";
 import { RoundsTable } from "@/components/game/rounds-table";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -39,17 +38,24 @@ export default function GamePage() {
 
   const handleStatusChange = useCallback((roundId: number, playerId: string, status: string) => {
     setRounds(prevRounds => {
-      return prevRounds.map(round => {
-        if (round.id === roundId) {
-          const newPlayerStatus = { 
-            ...round.playerStatus, 
-            [playerId]: status.toUpperCase() 
-          };
-          const newScores = calculateRoundScores(newPlayerStatus, players);
-          return { ...round, playerStatus: newPlayerStatus, scores: newScores };
-        }
-        return round;
-      });
+      const newRounds = [...prevRounds];
+      const roundIndex = newRounds.findIndex(r => r.id === roundId);
+      if (roundIndex === -1) return prevRounds;
+
+      const newPlayerStatus = { 
+        ...newRounds[roundIndex].playerStatus, 
+        [playerId]: status
+      };
+      
+      const newScores = calculateRoundScores(newPlayerStatus, players);
+
+      newRounds[roundIndex] = {
+        ...newRounds[roundIndex],
+        playerStatus: newPlayerStatus,
+        scores: newScores,
+      };
+
+      return newRounds;
     });
   }, [players]);
 
@@ -87,8 +93,8 @@ export default function GamePage() {
         </div>
         {isOrganizer && (
           <div className="flex gap-2">
-            <Button variant="outline"><Save className="mr-2" /> Save Game</Button>
-            <Button variant="destructive" onClick={resetGame}><Trash2 className="mr-2" /> Reset</Button>
+            <Button variant="outline"><Save className="mr-2 h-4 w-4" /> Save Game</Button>
+            <Button variant="destructive" onClick={resetGame}><Trash2 className="mr-2 h-4 w-4" /> Reset</Button>
           </div>
         )}
       </div>
@@ -100,10 +106,10 @@ export default function GamePage() {
         </TabsList>
         <TabsContent value="rounds" className="mt-6">
             <div className="space-y-8">
-                <LeaderboardTable players={players} totalScores={totalScores} />
                 <RoundsTable 
                     players={players} 
                     rounds={rounds}
+                    totalScores={totalScores}
                     onStatusChange={handleStatusChange}
                     isOrganizer={isOrganizer}
                 />
