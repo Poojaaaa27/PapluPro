@@ -49,32 +49,43 @@ export function calculateRoundScores(
         }
     });
 
-    // If there's not exactly one winner, the round is invalid for scoring.
-    if (winners.length !== 1) {
-        players.forEach(p => scores[p.id] = 0);
+    // Case 1: Exactly one winner
+    if (winners.length === 1) {
+        const winnerId = winners[0];
+        
+        // Calculate loser points and sum them up
+        players.forEach(player => {
+            if (player.id !== winnerId) {
+                const status = playerStatus[player.id] || "";
+                const points = parsePlayerStatus(status, rules);
+                scores[player.id] = -points;
+                totalLoserPoints += points;
+            }
+        });
+        
+        // Check for paplus for the winner from their own status string
+        const winnerStatus = (playerStatus[winnerId] || "").trim().toUpperCase();
+        if (winnerStatus.includes("3P")) totalLoserPoints += rules.triplePaplu;
+        else if (winnerStatus.includes("2P")) totalLoserPoints += rules.doublePaplu;
+        else if (winnerStatus.includes("1P")) totalLoserPoints += rules.singlePaplu;
+
+        // Assign final points to the winner
+        scores[winnerId] = totalLoserPoints;
+
         return scores;
     }
 
-    const winnerId = winners[0];
-    
-    // Calculate loser points and sum them up
-    players.forEach(player => {
-        if (player.id !== winnerId) {
+    // Case 2: No winners in the round
+    if (winners.length === 0) {
+        players.forEach(player => {
             const status = playerStatus[player.id] || "";
             const points = parsePlayerStatus(status, rules);
             scores[player.id] = -points;
-            totalLoserPoints += points;
-        }
-    });
-    
-    // Check for paplus for the winner from their own status string
-    const winnerStatus = (playerStatus[winnerId] || "").trim().toUpperCase();
-    if (winnerStatus.includes("3P")) totalLoserPoints += rules.triplePaplu;
-    else if (winnerStatus.includes("2P")) totalLoserPoints += rules.doublePaplu;
-    else if (winnerStatus.includes("1P")) totalLoserPoints += rules.singlePaplu;
+        });
+        return scores;
+    }
 
-    // Assign final points to the winner
-    scores[winnerId] = totalLoserPoints;
-
+    // Case 3: Multiple winners (invalid round), so all scores are 0.
+    players.forEach(p => scores[p.id] = 0);
     return scores;
 }
