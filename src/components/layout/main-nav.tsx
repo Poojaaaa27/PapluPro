@@ -12,6 +12,7 @@ export function MainNav() {
     { href: "/game", label: "Game" },
     { href: "/scores", label: "Scores" },
     { href: "/history", label: "History" },
+    { href: "/rules", label: "Rules" },
   ];
 
   return (

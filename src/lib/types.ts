@@ -30,3 +30,14 @@ export interface GameSession {
   rounds: GameRound[];
   status: "Completed" | "In Progress" | "Not Started";
 }
+
+export interface GameRules {
+  attaKasu: number;
+  scoot: number;
+  midScoot: number;
+  full: number;
+  perPoint: number;
+  singlePaplu: number;
+  doublePaplu: number;
+  triplePaplu: number;
+}

@@ -1,8 +1,9 @@
 "use client";
 
-import React, { createContext, useState, useMemo, useCallback, ReactNode } from "react";
-import type { Player, GameRound } from "@/lib/types";
+import React, { createContext, useState, useMemo, useCallback, ReactNode, useContext } from "react";
+import type { Player, GameRound, GameRules } from "@/lib/types";
 import { calculateRoundScores } from "@/lib/score-parser";
+import { RulesContext } from "./rules-provider";
 
 const mockPlayers: Player[] = [
   { id: "1", name: "jo" },
@@ -39,19 +40,24 @@ export function GameProvider({ children }: { children: ReactNode }) {
     date: "2025-08-12"
   });
 
+  const rulesContext = useContext(RulesContext);
+  if (!rulesContext) {
+    throw new Error("GameProvider must be used within a RulesProvider");
+  }
+  const { rules } = rulesContext;
+
   const handleStatusChange = useCallback((roundId: number, playerId: string, status: string) => {
     setRounds(prevRounds => {
-      const newRounds = prevRounds.map(r => {
+      return prevRounds.map(r => {
         if (r.id === roundId) {
           const newPlayerStatus = { ...r.playerStatus, [playerId]: status };
-          const newScores = calculateRoundScores(newPlayerStatus, players);
+          const newScores = calculateRoundScores(newPlayerStatus, players, rules);
           return { ...r, playerStatus: newPlayerStatus, scores: newScores };
         }
         return r;
       });
-      return newRounds;
     });
-  }, [players]);
+  }, [players, rules]);
 
   const resetGame = () => {
     setRounds(Array.from({ length: 15 }, (_, i) => ({

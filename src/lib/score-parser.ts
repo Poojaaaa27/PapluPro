@@ -1,40 +1,40 @@
+import type { Player, GameRules } from "./types";
 
-import type { Player } from "./types";
+export function parsePlayerStatus(code: string, rules: GameRules): number {
+    const upperCode = code.toUpperCase().trim();
 
-export function parsePlayerStatus(code: string): number {
-    const upperCode = code.toUpperCase();
-
-    // This function is for calculating points for a losing player.
-    // If the code contains 3C, it's a winner, and their individual points are 0 here.
     if (upperCode.includes("3C")) {
-        return 0;
+        return 0; // Winners are not losers.
     }
 
     let score = 0;
     
-    // Regex to find any numbers in the string.
+    // First, check for S, MS, F
+    if (upperCode.includes("F")) score = rules.full;
+    else if (upperCode.includes("MS")) score = rules.midScoot;
+    else if (upperCode.includes("S")) score = rules.scoot;
+    
+    // Regex to find any standalone numbers in the string.
     const numeralMatch = upperCode.match(/\d+/);
-    
-    // First, check for S, MS, F before checking for numerals.
-    if (upperCode.includes("S")) score = 10;
-    if (upperCode.includes("MS")) score = 20;
-    if (upperCode.includes("F")) score = 40;
-    
-    // If a number is present, it overrides S, MS, F.
     if (numeralMatch) {
-        score = parseInt(numeralMatch[0], 10);
+        // If a number is present, it is added to the score, multiplied by perPoint value.
+        // This assumes the number represents card points.
+        const cardPoints = parseInt(numeralMatch[0], 10);
+        score += cardPoints * rules.perPoint;
     }
     
-    if (upperCode.includes("1P")) score -= 10;
-    if (upperCode.includes("2P")) score -= 30;
-    if (upperCode.includes("3P")) score -= 50;
+    // Apply paplu reductions
+    if (upperCode.includes("3P")) score -= rules.triplePaplu;
+    else if (upperCode.includes("2P")) score -= rules.doublePaplu;
+    else if (upperCode.includes("1P")) score -= rules.singlePaplu;
 
     return Math.max(0, score);
 }
 
 export function calculateRoundScores(
     playerStatus: Record<string, string>,
-    players: Player[]
+    players: Player[],
+    rules: GameRules
 ): Record<string, number> {
     const scores: Record<string, number> = {};
     const winners: string[] = [];
@@ -43,14 +43,13 @@ export function calculateRoundScores(
     // Initialize scores and find winners
     players.forEach(player => {
         const status = (playerStatus[player.id] || "").trim().toUpperCase();
-        scores[player.id] = 0; // Default score
-        // A winner must contain '3C'
+        scores[player.id] = 0; 
         if (status.includes("3C")) {
             winners.push(player.id);
         }
     });
 
-    // If there is not exactly one winner, the round is invalid. All scores are 0.
+    // If there's not exactly one winner, the round is invalid for scoring.
     if (winners.length !== 1) {
         players.forEach(p => scores[p.id] = 0);
         return scores;
@@ -62,13 +61,19 @@ export function calculateRoundScores(
     players.forEach(player => {
         if (player.id !== winnerId) {
             const status = playerStatus[player.id] || "";
-            const points = parsePlayerStatus(status);
+            const points = parsePlayerStatus(status, rules);
             scores[player.id] = -points;
             totalLoserPoints += points;
         }
     });
+    
+    // Check for paplus for the winner from their own status string
+    const winnerStatus = (playerStatus[winnerId] || "").trim().toUpperCase();
+    if (winnerStatus.includes("3P")) totalLoserPoints += rules.triplePaplu;
+    else if (winnerStatus.includes("2P")) totalLoserPoints += rules.doublePaplu;
+    else if (winnerStatus.includes("1P")) totalLoserPoints += rules.singlePaplu;
 
-    // Assign total loser points to the winner
+    // Assign final points to the winner
     scores[winnerId] = totalLoserPoints;
 
     return scores;

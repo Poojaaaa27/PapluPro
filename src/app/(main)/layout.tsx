@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { GameProvider } from '@/contexts/game-provider';
+import { RulesProvider } from '@/contexts/rules-provider';
 
 export default function MainLayout({
   children,
@@ -43,13 +44,15 @@ export default function MainLayout({
   }
 
   return (
-    <GameProvider>
-        <div className="relative flex min-h-screen w-full flex-col items-center">
-        <Header />
-        <main className="flex-1 w-full container max-w-screen-2xl">
-            {children}
-        </main>
-        </div>
-    </GameProvider>
+    <RulesProvider>
+      <GameProvider>
+          <div className="relative flex min-h-screen w-full flex-col items-center">
+          <Header />
+          <main className="flex-1 w-full container max-w-screen-2xl">
+              {children}
+          </main>
+          </div>
+      </GameProvider>
+    </RulesProvider>
   );
 }
