@@ -10,20 +10,15 @@ export function parsePlayerStatus(code: string): number {
 
     let score = 0;
     
-    // Numeral points can exist with other codes
     const numeralMatch = upperCode.match(/-?(\d+)/);
     if (numeralMatch) {
         score = parseInt(numeralMatch[1], 10);
-    }
-
-    // Game status points (only if no numeral is present)
-    if (!numeralMatch) {
+    } else {
         if (upperCode.includes("S")) score = 10;
         if (upperCode.includes("MS")) score = 20;
         if (upperCode.includes("F")) score = 40;
     }
     
-    // Paplu reductions (can apply to any loser score)
     if (upperCode.includes("1P")) score -= 10;
     if (upperCode.includes("2P")) score -= 30;
     if (upperCode.includes("3P")) score -= 50;
@@ -36,23 +31,25 @@ export function calculateRoundScores(
     players: Player[]
 ): Record<string, number> {
     const scores: Record<string, number> = {};
-    let winnerId: string | null = null;
+    const winners: string[] = [];
     let totalLoserPoints = 0;
 
-    // Initialize scores and find the winner
+    // Initialize scores and find winners
     players.forEach(player => {
         const status = playerStatus[player.id] || "";
         scores[player.id] = 0; // Default score
         if (status.toUpperCase().includes("3C")) {
-            winnerId = player.id;
+            winners.push(player.id);
         }
     });
 
-    // If no winner, all scores are 0
-    if (!winnerId) {
+    // If there is not exactly one winner, the round is invalid. All scores are 0.
+    if (winners.length !== 1) {
         players.forEach(p => scores[p.id] = 0);
         return scores;
     }
+
+    const winnerId = winners[0];
     
     // Calculate loser points and sum them up
     players.forEach(player => {
@@ -65,9 +62,7 @@ export function calculateRoundScores(
     });
 
     // Assign total loser points to the winner
-    if (winnerId) {
-        scores[winnerId] = totalLoserPoints;
-    }
+    scores[winnerId] = totalLoserPoints;
 
     return scores;
 }
