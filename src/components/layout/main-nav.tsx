@@ -10,6 +10,7 @@ export function MainNav() {
   const routes = [
     { href: "/dashboard", label: "Dashboard" },
     { href: "/game", label: "Game" },
+    { href: "/scores", label: "Scores" },
     { href: "/history", label: "History" },
   ];
 
