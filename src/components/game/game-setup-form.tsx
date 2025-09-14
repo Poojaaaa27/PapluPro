@@ -4,19 +4,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import type { Player } from "@/lib/types";
+import type { GameDetails, Player } from "@/lib/types";
 import { Trash2, UserPlus, Users } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { CalendarIcon } from 'lucide-react';
 import { Calendar } from '../ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { Switch } from '../ui/switch';
 
 interface GameSetupFormProps {
     players: Player[];
     setPlayers: React.Dispatch<React.SetStateAction<Player[]>>;
-    gameDetails: { location: string; teamName: string; date: string; };
-    setGameDetails: React.Dispatch<React.SetStateAction<{ location: string; teamName: string; date: string; }>>;
+    gameDetails: GameDetails;
+    setGameDetails: React.Dispatch<React.SetStateAction<GameDetails>>;
     isOrganizer: boolean;
 }
 
@@ -51,6 +52,7 @@ export function GameSetupForm({ players, setPlayers, gameDetails, setGameDetails
                     <p><strong>Location:</strong> {gameDetails.location}</p>
                     <p><strong>Team Name:</strong> {gameDetails.teamName}</p>
                     <p><strong>Date:</strong> {gameDetails.date ? format(new Date(gameDetails.date), "PPP") : 'Not set'}</p>
+                    <p><strong>3 Card Game:</strong> {gameDetails.is3CardGame ? 'Yes' : 'No'}</p>
                 </div>
                 <div>
                     <h3 className="font-headline text-lg mb-2 flex items-center gap-2"><Users />Players</h3>
@@ -70,16 +72,16 @@ export function GameSetupForm({ players, setPlayers, gameDetails, setGameDetails
         <CardDescription>Configure the details for the current game session.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
             <div className="space-y-2">
-            <Label htmlFor="location" className="font-headline">Location</Label>
-            <Input id="location" value={gameDetails.location} onChange={(e) => setGameDetails(prev => ({ ...prev, location: e.target.value }))} placeholder="e.g., Clubhouse" />
+                <Label htmlFor="location" className="font-headline">Location</Label>
+                <Input id="location" value={gameDetails.location} onChange={(e) => setGameDetails(prev => ({ ...prev, location: e.target.value }))} placeholder="e.g., Clubhouse" />
             </div>
             <div className="space-y-2">
-            <Label htmlFor="teamName" className="font-headline">Team Name</Label>
-            <Input id="teamName" value={gameDetails.teamName} onChange={(e) => setGameDetails(prev => ({ ...prev, teamName: e.target.value }))} placeholder="e.g., The Aces" />
+                <Label htmlFor="teamName" className="font-headline">Team Name</Label>
+                <Input id="teamName" value={gameDetails.teamName} onChange={(e) => setGameDetails(prev => ({ ...prev, teamName: e.target.value }))} placeholder="e.g., The Aces" />
             </div>
-             <div className="space-y-2">
+            <div className="space-y-2">
                 <Label htmlFor="gameDate" className="font-headline">Date</Label>
                 <Popover>
                     <PopoverTrigger asChild>
@@ -104,6 +106,14 @@ export function GameSetupForm({ players, setPlayers, gameDetails, setGameDetails
                     />
                     </PopoverContent>
                 </Popover>
+            </div>
+             <div className="flex items-center space-x-2">
+                <Switch 
+                    id="is3CardGame"
+                    checked={gameDetails.is3CardGame}
+                    onCheckedChange={(checked) => setGameDetails(prev => ({...prev, is3CardGame: checked}))}
+                />
+                <Label htmlFor="is3CardGame" className="font-headline">3 Card Game</Label>
             </div>
         </div>
         <div className="space-y-4">

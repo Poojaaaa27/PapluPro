@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, ReactNode, useContext } from "react";
-import type { Player, GameRound } from "@/lib/types";
+import type { Player, GameRound, GameDetails } from "@/lib/types";
 import { calculateRoundScores } from "@/lib/score-parser";
 import { RulesContext } from "./rules-provider";
 import { format } from "date-fns";
@@ -23,8 +23,8 @@ interface GameContextType {
   setPlayers: React.Dispatch<React.SetStateAction<Player[]>>;
   rounds: GameRound[];
   setRounds: React.Dispatch<React.SetStateAction<GameRound[]>>;
-  gameDetails: { location: string; teamName: string; date: string; };
-  setGameDetails: React.Dispatch<React.SetStateAction<{ location: string; teamName: string; date: string; }>>;
+  gameDetails: GameDetails;
+  setGameDetails: React.Dispatch<React.SetStateAction<GameDetails>>;
   handleStatusChange: (roundId: number, playerId: string, status: string) => void;
   resetGame: () => void;
   totalScores: Record<string, number>;
@@ -35,10 +35,11 @@ export const GameContext = createContext<GameContextType | undefined>(undefined)
 export function GameProvider({ children }: { children: ReactNode }) {
   const [players, setPlayers] = useState<Player[]>(mockPlayers);
   const [rounds, setRounds] = useState<GameRound[]>(mockRounds);
-  const [gameDetails, setGameDetails] = useState({
+  const [gameDetails, setGameDetails] = useState<GameDetails>({
     location: "Chennai",
     teamName: "Team 1",
-    date: format(new Date(), 'yyyy-MM-dd')
+    date: format(new Date(), 'yyyy-MM-dd'),
+    is3CardGame: true,
   });
 
   const rulesContext = useContext(RulesContext);
@@ -52,13 +53,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
       return prevRounds.map(r => {
         if (r.id === roundId) {
           const newPlayerStatus = { ...r.playerStatus, [playerId]: status };
-          const newScores = calculateRoundScores(newPlayerStatus, players, rules);
+          const newScores = calculateRoundScores(newPlayerStatus, players, rules, gameDetails.is3CardGame);
           return { ...r, playerStatus: newPlayerStatus, scores: newScores };
         }
         return r;
       });
     });
-  }, [players, rules]);
+  }, [players, rules, gameDetails.is3CardGame]);
 
   const resetGame = () => {
     setRounds(Array.from({ length: 15 }, (_, i) => ({

@@ -41,3 +41,10 @@ export interface GameRules {
   doublePaplu: number;
   triplePaplu: number;
 }
+
+export interface GameDetails {
+  location: string;
+  teamName: string;
+  date: string;
+  is3CardGame: boolean;
+}
