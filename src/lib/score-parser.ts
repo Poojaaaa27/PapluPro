@@ -3,8 +3,9 @@ import type { Player, GameRules } from "./types";
 export function parsePlayerStatus(code: string, rules: GameRules): number {
     const upperCode = code.toUpperCase().trim();
 
+    // Winners are not losers. If "3C" is present, they don't get negative points.
     if (upperCode.includes("3C")) {
-        return 0; // Winners are not losers.
+        return 0; 
     }
 
     let score = 0;
@@ -18,12 +19,11 @@ export function parsePlayerStatus(code: string, rules: GameRules): number {
     const numeralMatch = upperCode.match(/\d+/);
     if (numeralMatch) {
         // If a number is present, it is added to the score, multiplied by perPoint value.
-        // This assumes the number represents card points.
         const cardPoints = parseInt(numeralMatch[0], 10);
         score += cardPoints * rules.perPoint;
     }
     
-    // Apply paplu reductions
+    // Apply paplu reductions for losers
     if (upperCode.includes("3P")) score -= rules.triplePaplu;
     else if (upperCode.includes("2P")) score -= rules.doublePaplu;
     else if (upperCode.includes("1P")) score -= rules.singlePaplu;
@@ -40,7 +40,7 @@ export function calculateRoundScores(
     const winners: string[] = [];
     let totalLoserPoints = 0;
 
-    // Initialize scores and find winners
+    // Initialize scores and find all potential winners
     players.forEach(player => {
         const status = (playerStatus[player.id] || "").trim().toUpperCase();
         scores[player.id] = 0; 
@@ -49,7 +49,7 @@ export function calculateRoundScores(
         }
     });
 
-    // Case 1: Exactly one winner (or prioritize first winner if multiple)
+    // Case 1: One or more players are marked as winner. Prioritize the first one.
     if (winners.length >= 1) {
         const winnerId = winners[0]; // Prioritize the first winner found
         
@@ -63,7 +63,7 @@ export function calculateRoundScores(
             }
         });
         
-        // Check for paplus for the winner from their own status string
+        // The winner also gets points for their own paplus, if any
         const winnerStatus = (playerStatus[winnerId] || "").trim().toUpperCase();
         if (winnerStatus.includes("3P")) totalLoserPoints += rules.triplePaplu;
         else if (winnerStatus.includes("2P")) totalLoserPoints += rules.doublePaplu;
@@ -75,7 +75,7 @@ export function calculateRoundScores(
         return scores;
     }
 
-    // Case 2: No winners in the round
+    // Case 2: No winners in the round. Calculate individual scores.
     if (winners.length === 0) {
         players.forEach(player => {
             const status = playerStatus[player.id] || "";
@@ -85,7 +85,7 @@ export function calculateRoundScores(
         return scores;
     }
 
-    // Fallback for any other invalid state
+    // Fallback for any other state (should not be reached)
     players.forEach(p => scores[p.id] = 0);
     return scores;
 }
