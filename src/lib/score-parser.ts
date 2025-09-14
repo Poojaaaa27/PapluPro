@@ -1,3 +1,4 @@
+
 import type { Player } from "./types";
 
 export function parsePlayerStatus(code: string): number {
@@ -8,19 +9,21 @@ export function parsePlayerStatus(code: string): number {
     }
 
     let score = 0;
-
-    // Game status points
-    if (upperCode.includes("S")) score = 10;
-    if (upperCode.includes("MS")) score = 20;
-    if (upperCode.includes("F")) score = 40;
     
-    // Numeral points
+    // Numeral points can exist with other codes
     const numeralMatch = upperCode.match(/-?(\d+)/);
     if (numeralMatch) {
         score = parseInt(numeralMatch[1], 10);
     }
+
+    // Game status points (only if no numeral is present)
+    if (!numeralMatch) {
+        if (upperCode.includes("S")) score = 10;
+        if (upperCode.includes("MS")) score = 20;
+        if (upperCode.includes("F")) score = 40;
+    }
     
-    // Paplu reductions (only for losers)
+    // Paplu reductions (can apply to any loser score)
     if (upperCode.includes("1P")) score -= 10;
     if (upperCode.includes("2P")) score -= 30;
     if (upperCode.includes("3P")) score -= 50;
@@ -47,6 +50,7 @@ export function calculateRoundScores(
 
     // If no winner, all scores are 0
     if (!winnerId) {
+        players.forEach(p => scores[p.id] = 0);
         return scores;
     }
     
