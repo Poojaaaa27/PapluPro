@@ -2,6 +2,7 @@
 
 import { GameSetupForm } from "@/components/game/game-setup-form";
 import { RoundsTable } from "@/components/game/rounds-table";
+import { ScoresTable } from "@/components/game/scores-table";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
@@ -38,13 +39,14 @@ export default function GamePage() {
 
   const handleStatusChange = useCallback((roundId: number, playerId: string, status: string) => {
     setRounds(prevRounds => {
-      const newRounds = prevRounds.map(r => {
+      return prevRounds.map(r => {
         if (r.id === roundId) {
           const newPlayerStatus = { 
             ...r.playerStatus, 
             [playerId]: status
           };
           const newScores = calculateRoundScores(newPlayerStatus, players);
+          // Create a new round object to ensure state update
           return {
             ...r,
             playerStatus: newPlayerStatus,
@@ -53,9 +55,9 @@ export default function GamePage() {
         }
         return r;
       });
-      return newRounds;
     });
   }, [players]);
+
 
   const resetGame = () => {
     setRounds(Array.from({ length: 15 }, (_, i) => ({
@@ -104,10 +106,14 @@ export default function GamePage() {
         </TabsList>
         <TabsContent value="rounds" className="mt-6">
             <div className="space-y-8">
-                <RoundsTable 
+                <ScoresTable 
                     players={players} 
                     rounds={rounds}
                     totalScores={totalScores}
+                />
+                <RoundsTable 
+                    players={players} 
+                    rounds={rounds}
                     onStatusChange={handleStatusChange}
                     isOrganizer={isOrganizer}
                 />
