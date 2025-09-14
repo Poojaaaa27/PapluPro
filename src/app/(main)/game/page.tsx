@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import type { Player, GameRound } from "@/lib/types";
 import { Save, Trash2 } from "lucide-react";
 import { useState, useMemo, useCallback } from "react";
-import { parsePlayerStatus, calculateRoundScores } from "@/lib/score-parser";
+import { calculateRoundScores } from "@/lib/score-parser";
 
 
 const mockPlayers: Player[] = [
@@ -39,15 +39,17 @@ export default function GamePage() {
 
   const handleStatusChange = useCallback((roundId: number, playerId: string, status: string) => {
     setRounds(prevRounds => {
-        const newRounds = prevRounds.map(r => {
-            if (r.id === roundId) {
-                const newPlayerStatus = { ...r.playerStatus, [playerId]: status.toUpperCase() };
-                const newScores = calculateRoundScores(newPlayerStatus, players);
-                return { ...r, playerStatus: newPlayerStatus, scores: newScores };
-            }
-            return r;
-        });
-        return newRounds;
+      return prevRounds.map(round => {
+        if (round.id === roundId) {
+          const newPlayerStatus = { 
+            ...round.playerStatus, 
+            [playerId]: status.toUpperCase() 
+          };
+          const newScores = calculateRoundScores(newPlayerStatus, players);
+          return { ...round, playerStatus: newPlayerStatus, scores: newScores };
+        }
+        return round;
+      });
     });
   }, [players]);
 
