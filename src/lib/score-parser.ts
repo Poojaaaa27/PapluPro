@@ -12,7 +12,7 @@ export function parsePlayerStatus(code: string, rules: GameRules): number {
     const upperCode = code.toUpperCase().trim();
     if (!upperCode) return 0;
     
-    // 'D' and 'G' are markers and don't have point values themselves in this model.
+    // 'D' and 'G' are markers and don't have point values themselves.
     if (upperCode === "D" || upperCode === "G") return 0;
 
     let score = 0;
@@ -39,6 +39,8 @@ export function parsePlayerStatus(code: string, rules: GameRules): number {
     // Add points for Paplu (Paplu is a penalty for losers, bonus for winners, handled in calculateRoundScores)
     if (papluMatch) {
         const papluCount = parseInt(papluMatch[1], 10);
+        // Note: Paplu points are added here but typically result in a negative score for losers.
+        // The calling function `calculateRoundScores` will handle making the final score negative.
         if (papluCount === 1) score += rules.singlePaplu;
         else if (papluCount === 2) score += rules.doublePaplu;
         else if (papluCount === 3) score += rules.triplePaplu;
@@ -51,6 +53,7 @@ export function parsePlayerStatus(code: string, rules: GameRules): number {
 /**
  * Calculates the scores for all players for a single round based on their status codes.
  * This function enforces the rule that there must be exactly one winner (3C) if it's a 3-card game.
+ * It also handles the "G" (Gate) rule.
  * @param playerStatus A record of player IDs to their status codes for the round.
  * @param players An array of all players in the game.
  * @param rules The current game rules.
@@ -65,57 +68,102 @@ export function calculateRoundScores(
 ): Record<string, number> {
     const scores: Record<string, number> = {};
     players.forEach(p => scores[p.id] = 0);
-
-    const winners = players.filter(p => (playerStatus[p.id] || "").toUpperCase().includes("3C"));
     
+    const winners = players.filter(p => (playerStatus[p.id] || "").toUpperCase().includes("3C"));
+    const gatePlayers = players.filter(p => (playerStatus[p.id] || "").toUpperCase().includes("G"));
+
     // --- 3 Card Game Logic ---
-    if (is3CardGame) {
-        // A 3-card game round is only valid if there is exactly one winner.
-        if (winners.length === 1) {
-            const winnerId = winners[0].id;
-            let totalLoserPoints = 0;
+    if (is3CardGame && winners.length === 1) {
+        const winnerId = winners[0].id;
+        let totalLoserPoints = 0;
 
-            // Calculate points for all losers
-            players.forEach(player => {
-                if (player.id !== winnerId) {
-                    const status = playerStatus[player.id] || "";
-                    const points = parsePlayerStatus(status, rules);
-                    scores[player.id] = -points;
-                    totalLoserPoints += points;
-                }
+        // Calculate initial points for all losers
+        const loserScores: Record<string, number> = {};
+        players.forEach(player => {
+            if (player.id !== winnerId) {
+                const status = playerStatus[player.id] || "";
+                const points = parsePlayerStatus(status, rules);
+                loserScores[player.id] = points;
+            } else {
+                 loserScores[player.id] = 0;
+            }
+        });
+
+        // Apply Gate rule
+        if (gatePlayers.length > 0) {
+            gatePlayers.forEach(gatePlayer => {
+                players.forEach(otherPlayer => {
+                    // Gate doubles other players' points, except for scoot players
+                    const otherPlayerStatus = (playerStatus[otherPlayer.id] || "").toUpperCase();
+                    if (otherPlayer.id !== gatePlayer.id && !otherPlayerStatus.includes("S")) {
+                        // If the other player is the winner, this logic doesn't apply.
+                        // We only double loser's points.
+                        if (otherPlayer.id !== winnerId) {
+                           loserScores[otherPlayer.id] *= 2;
+                        }
+                    }
+                });
             });
-
-            // Add Atta Kasu for each loser
-            const loserCount = players.length - 1;
-            totalLoserPoints += loserCount * rules.attaKasu;
-
-            // The winner also gets points for their own status (e.g., paplus, scoot in their hand)
-            const winnerStatus = playerStatus[winnerId] || "";
-            const winnerBonusPoints = parsePlayerStatus(winnerStatus, rules);
-            totalLoserPoints += winnerBonusPoints;
-
-            // Assign final score to winner
-            scores[winnerId] = totalLoserPoints;
-
-            return scores;
-        } else if (winners.length > 1) {
-            // Invalid round if more than one winner
-            return scores; // Return all zeros
         }
+        
+        // Sum up final loser points and assign negative scores
+        players.forEach(player => {
+            if (player.id !== winnerId) {
+                scores[player.id] = -loserScores[player.id];
+                totalLoserPoints += loserScores[player.id];
+            }
+        });
+
+
+        // Add Atta Kasu for each loser
+        const loserCount = players.length - 1;
+        totalLoserPoints += loserCount * rules.attaKasu;
+
+        // The winner also gets points for their own status (e.g., paplus)
+        const winnerStatus = playerStatus[winnerId] || "";
+        const winnerBonusPoints = parsePlayerStatus(winnerStatus, rules);
+        totalLoserPoints += winnerBonusPoints;
+
+        // Assign final score to winner
+        scores[winnerId] = totalLoserPoints;
+
+        return scores;
     }
     
-    // --- Default Scoring Logic (No winner or not a 3-card game) ---
-    // Score everyone individually as a loser.
+    // --- Default Scoring Logic (No single winner in a 3-card game, or not a 3-card game) ---
+    // Score everyone individually.
+    const individualScores: Record<string, number> = {};
     players.forEach(player => {
-        const status = (playerStatus[player.id] || "").trim();
+        const status = (playerStatus[player.id] || "").trim().toUpperCase();
         if (status) {
-            // Winners in a non-3-card game or a round with no single winner just get 0 for themselves.
-            if ((playerStatus[player.id] || "").toUpperCase().includes("3C")) {
-                 scores[player.id] = 0;
+            // A player with 3C in a non-winning round gets 0
+            if (status.includes("3C")) {
+                 individualScores[player.id] = 0;
             } else {
-                 scores[player.id] = -parsePlayerStatus(status, rules);
+                 individualScores[player.id] = parsePlayerStatus(status, rules);
             }
+        } else {
+            individualScores[player.id] = 0;
         }
     });
+
+    // Apply Gate rule for non-winner scenarios
+    if (gatePlayers.length > 0) {
+        gatePlayers.forEach(gatePlayer => {
+            players.forEach(otherPlayer => {
+                const otherPlayerStatus = (playerStatus[otherPlayer.id] || "").toUpperCase();
+                if(otherPlayer.id !== gatePlayer.id && !otherPlayerStatus.includes("S")) {
+                    individualScores[otherPlayer.id] *= 2;
+                }
+            });
+        });
+    }
+    
+    // Assign final negative scores
+    players.forEach(player => {
+        scores[player.id] = -individualScores[player.id];
+    });
+
     return scores;
 }
+
