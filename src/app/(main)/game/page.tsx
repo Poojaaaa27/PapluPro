@@ -2,13 +2,15 @@
 
 import { GameSetupForm } from "@/components/game/game-setup-form";
 import { LeaderboardTable } from "@/components/game/leaderboard-table";
-import { RoundsManager } from "@/components/game/rounds-manager";
+import { RoundsTable } from "@/components/game/rounds-table";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import type { Player, GameRound } from "@/lib/types";
-import { Save, Share2, SquarePlus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { Save, Trash2 } from "lucide-react";
+import { useState, useMemo, useCallback } from "react";
+import { parsePlayerStatus, calculateRoundScores } from "@/lib/score-parser";
+
 
 const mockPlayers: Player[] = [
   { id: "1", name: "jo" },
@@ -16,7 +18,11 @@ const mockPlayers: Player[] = [
   { id: "3", name: "fo" },
 ];
 
-const mockRounds: GameRound[] = [];
+const mockRounds: GameRound[] = Array.from({ length: 15 }, (_, i) => ({
+  id: i + 1,
+  playerStatus: {},
+  scores: {},
+}));
 
 
 export default function GamePage() {
@@ -26,14 +32,45 @@ export default function GamePage() {
   const [players, setPlayers] = useState<Player[]>(mockPlayers);
   const [rounds, setRounds] = useState<GameRound[]>(mockRounds);
   const [gameDetails, setGameDetails] = useState({
-      location: "The Den",
-      teamName: "The High Rollers"
+      location: "Chennai",
+      teamName: "Team 1",
+      date: "2025-08-12"
   });
 
+  const handleStatusChange = useCallback((roundId: number, playerId: string, status: string) => {
+    setRounds(prevRounds => {
+        const newRounds = prevRounds.map(r => {
+            if (r.id === roundId) {
+                const newPlayerStatus = { ...r.playerStatus, [playerId]: status.toUpperCase() };
+                const newScores = calculateRoundScores(newPlayerStatus, players);
+                return { ...r, playerStatus: newPlayerStatus, scores: newScores };
+            }
+            return r;
+        });
+        return newRounds;
+    });
+  }, [players]);
+
   const resetGame = () => {
-    setRounds([]);
-    // Maybe show a confirmation dialog here in a real app
+    setRounds(Array.from({ length: 15 }, (_, i) => ({
+      id: i + 1,
+      playerStatus: {},
+      scores: {},
+    })));
   }
+  
+  const totalScores = useMemo(() => {
+    const totals: Record<string, number> = {};
+    players.forEach(p => totals[p.id] = 0);
+    rounds.forEach(round => {
+      Object.entries(round.scores).forEach(([playerId, score]) => {
+        if (totals[playerId] !== undefined) {
+          totals[playerId] += score;
+        }
+      });
+    });
+    return totals;
+  }, [rounds, players]);
 
   return (
     <div className="py-8">
@@ -43,7 +80,7 @@ export default function GamePage() {
             Game In Progress
           </h1>
           <p className="text-muted-foreground mt-1">
-            {gameDetails.teamName} at {gameDetails.location}
+            {gameDetails.teamName} at {gameDetails.location} | Players: {players.length} | Date: {gameDetails.date}
           </p>
         </div>
         {isOrganizer && (
@@ -55,11 +92,21 @@ export default function GamePage() {
       </div>
 
       <Tabs defaultValue="rounds" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="setup" className="font-headline">Game Setup</TabsTrigger>
-          <TabsTrigger value="rounds" className="font-headline">Rounds</TabsTrigger>
-          <TabsTrigger value="leaderboard" className="font-headline">Leaderboard</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="rounds" className="font-headline">Game</TabsTrigger>
+          <TabsTrigger value="setup" className="font-headline">Setup</TabsTrigger>
         </TabsList>
+        <TabsContent value="rounds" className="mt-6">
+            <div className="space-y-8">
+                <LeaderboardTable players={players} totalScores={totalScores} />
+                <RoundsTable 
+                    players={players} 
+                    rounds={rounds}
+                    onStatusChange={handleStatusChange}
+                    isOrganizer={isOrganizer}
+                />
+            </div>
+        </TabsContent>
         <TabsContent value="setup" className="mt-6">
           <GameSetupForm 
             players={players} 
@@ -68,17 +115,6 @@ export default function GamePage() {
             setGameDetails={setGameDetails}
             isOrganizer={isOrganizer}
           />
-        </TabsContent>
-        <TabsContent value="rounds" className="mt-6">
-          <RoundsManager 
-            rounds={rounds} 
-            players={players} 
-            setRounds={setRounds}
-            isOrganizer={isOrganizer}
-          />
-        </TabsContent>
-        <TabsContent value="leaderboard" className="mt-6">
-          <LeaderboardTable players={players} rounds={rounds} />
         </TabsContent>
       </Tabs>
     </div>

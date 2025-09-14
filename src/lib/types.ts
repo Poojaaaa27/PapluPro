@@ -14,14 +14,10 @@ export type PapluType = "single" | "double" | "triple" | null;
 
 export interface GameRound {
   id: number;
-  winnerId: string;
-  paplu: PapluType;
-  scoot: boolean;
-  midScoot: boolean;
-  full: boolean;
-  attaKasu: boolean;
+  // Raw input strings for each player
+  playerStatus: Record<string, string>; // Player ID -> status code e.g., "3C", "1P-25"
+  // Calculated scores
   scores: Record<string, number>; // Player ID -> score
-  pointValue: number;
 }
 
 

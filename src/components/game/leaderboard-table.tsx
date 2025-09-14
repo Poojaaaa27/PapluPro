@@ -9,25 +9,25 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import type { GameRound, Player } from "@/lib/types";
+import type { Player } from "@/lib/types";
 import { useMemo } from "react";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
-import { Crown, TrendingDown, TrendingUp } from "lucide-react";
+import { Crown, TrendingDown, TrendingUp, Minus } from "lucide-react";
 
 interface LeaderboardTableProps {
     players: Player[];
-    rounds: GameRound[];
+    totalScores: Record<string, number>;
 }
 
-export function LeaderboardTable({ players, rounds }: LeaderboardTableProps) {
+export function LeaderboardTable({ players, totalScores }: LeaderboardTableProps) {
     
     const leaderboardData = useMemo(() => {
-        const scores = players.map(player => {
-            const totalScore = rounds.reduce((acc, round) => acc + (round.scores[player.id] || 0), 0);
-            return { ...player, totalScore };
-        });
+        const scores = players.map(player => ({
+            ...player,
+            totalScore: totalScores[player.id] || 0,
+        }));
         return scores.sort((a, b) => b.totalScore - a.totalScore);
-    }, [players, rounds]);
+    }, [players, totalScores]);
     
     const playerImages = PlaceHolderImages.filter(p => p.id.startsWith('card-player'));
     
@@ -52,14 +52,14 @@ export function LeaderboardTable({ players, rounds }: LeaderboardTableProps) {
                                 <TableCell className="font-medium text-lg">
                                     <div className="flex items-center gap-2">
                                         {index + 1}
-                                        {index === 0 && <Crown className="w-5 h-5 text-amber-500" />}
+                                        {index === 0 && player.totalScore > 0 && <Crown className="w-5 h-5 text-amber-500" />}
                                     </div>
                                 </TableCell>
                                 <TableCell>
                                     <div className="flex items-center gap-3">
                                         <Avatar>
                                             <AvatarImage src={playerImages[index % playerImages.length]?.imageUrl} data-ai-hint="person portrait" />
-                                            <AvatarFallback>{player.name.substring(0, 2)}</AvatarFallback>
+                                            <AvatarFallback>{player.name.substring(0, 2).toUpperCase()}</AvatarFallback>
                                         </Avatar>
                                         <span className="font-medium">{player.name}</span>
                                     </div>
@@ -69,7 +69,8 @@ export function LeaderboardTable({ players, rounds }: LeaderboardTableProps) {
                                         {player.totalScore > 0 ? 
                                             <TrendingUp className="w-4 h-4 text-green-600"/> :
                                             player.totalScore < 0 ?
-                                            <TrendingDown className="w-4 h-4 text-red-600"/> : null
+                                            <TrendingDown className="w-4 h-4 text-red-600"/> : 
+                                            <Minus className="w-4 h-4 text-muted-foreground" />
                                         }
                                         <span className={player.totalScore > 0 ? 'text-green-600' : player.totalScore < 0 ? 'text-red-600' : ''}>
                                             {player.totalScore}
