@@ -4,9 +4,9 @@ import type { Player } from "./types";
 export function parsePlayerStatus(code: string): number {
     const upperCode = code.toUpperCase();
 
-    // The winner's cell should just be '3C', their score is calculated differently.
     // This function is for calculating points for a losing player.
-    if (upperCode === "3C") {
+    // If the code contains 3C, it's a winner, and their individual points are 0 here.
+    if (upperCode.includes("3C")) {
         return 0;
     }
 
@@ -14,12 +14,15 @@ export function parsePlayerStatus(code: string): number {
     
     // Regex to find any numbers in the string.
     const numeralMatch = upperCode.match(/\d+/);
+    
+    // First, check for S, MS, F before checking for numerals.
+    if (upperCode.includes("S")) score = 10;
+    if (upperCode.includes("MS")) score = 20;
+    if (upperCode.includes("F")) score = 40;
+    
+    // If a number is present, it overrides S, MS, F.
     if (numeralMatch) {
         score = parseInt(numeralMatch[0], 10);
-    } else {
-        if (upperCode.includes("S")) score = 10;
-        if (upperCode.includes("MS")) score = 20;
-        if (upperCode.includes("F")) score = 40;
     }
     
     if (upperCode.includes("1P")) score -= 10;
@@ -41,8 +44,8 @@ export function calculateRoundScores(
     players.forEach(player => {
         const status = (playerStatus[player.id] || "").trim().toUpperCase();
         scores[player.id] = 0; // Default score
-        // A winner must be marked exactly as '3C'
-        if (status === "3C") {
+        // A winner must contain '3C'
+        if (status.includes("3C")) {
             winners.push(player.id);
         }
     });
