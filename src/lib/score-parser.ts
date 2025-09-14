@@ -21,25 +21,22 @@ export function parsePlayerStatus(code: string, rules: GameRules): number {
     parts.forEach(part => {
         let currentPart = part;
         
-        // Handle Paplu
-        const papluMatch = currentPart.match(/(\d+)P/);
-        if (papluMatch) {
-            const papluCount = parseInt(papluMatch[1], 10);
-            if (papluCount === 1) score += rules.singlePaplu;
-            else if (papluCount === 2) score += rules.doublePaplu;
-            else if (papluCount === 3) score += rules.triplePaplu;
-            currentPart = currentPart.replace(/(\d+)P/, '');
-        }
+        // Handle Paplu (these are negative/penalties for losers, but bonuses for winner)
+        if (currentPart.includes("3P")) score += rules.triplePaplu;
+        if (currentPart.includes("2P")) score += rules.doublePaplu;
+        if (currentPart.includes("1P")) score += rules.singlePaplu;
         
         // Handle Statuses (S, MS, F)
         if (currentPart.includes("MS")) score += rules.midScoot;
-        if (currentPart.includes("S")) score += rules.scoot;
+        else if (currentPart.includes("S")) score += rules.scoot; // Use else-if to prevent double counting S in MS
+        
         if (currentPart.includes("F")) score += rules.full;
         
-        // Handle pure numeric values that might be left
-        const numericMatch = currentPart.match(/^\d+$/);
-        if (numericMatch) {
-            score += parseInt(numericMatch[0], 10) * rules.perPoint;
+        // Handle numeric values, removing status codes first
+        const numericPart = currentPart.replace(/(3C|1P|2P|3P|MS|S|F|D|G)/g, '');
+        const numericValue = parseInt(numericPart, 10);
+        if (!isNaN(numericValue)) {
+            score += numericValue * rules.perPoint;
         }
     });
 
@@ -70,23 +67,19 @@ export function calculateRoundScores(
         basePoints[player.id] = parsePlayerStatus(status, rules);
     });
 
-    // 2. Apply Gate (G) rule
-    const gatePlayers = players.filter(p => (playerStatus[p.id] || "").toUpperCase().includes("G"));
-    if (gatePlayers.length > 0) {
-        // Create a mutable copy to modify
-        const modifiedBasePoints = { ...basePoints };
-        gatePlayers.forEach(gatePlayer => {
-            players.forEach(otherPlayer => {
-                // Don't double gate player's own points or players who have Scoot
-                if (otherPlayer.id !== gatePlayer.id && !(playerStatus[otherPlayer.id] || "").toUpperCase().includes("S")) {
-                    modifiedBasePoints[otherPlayer.id] *= 2;
+    // 2. Apply Gate (G) rule if present
+    const gatePlayer = players.find(p => (playerStatus[p.id] || "").toUpperCase().includes("G"));
+    if (gatePlayer) {
+        players.forEach(otherPlayer => {
+            if (otherPlayer.id !== gatePlayer.id) {
+                const otherPlayerStatus = (playerStatus[otherPlayer.id] || "").toUpperCase();
+                if (!otherPlayerStatus.includes("S")) {
+                    basePoints[otherPlayer.id] *= 2;
                 }
-            });
+            }
         });
-        // Use the modified points for subsequent calculations
-        Object.assign(basePoints, modifiedBasePoints);
     }
-    
+
     // --- 3. Winner Logic ---
     // The winner is the one with "D" (Declare)
     const winners = players.filter(p => (playerStatus[p.id] || "").toUpperCase().includes("D"));
@@ -95,22 +88,37 @@ export function calculateRoundScores(
     if (winners.length === 1) {
         const winnerId = winners[0].id;
         let totalPointsForWinner = 0;
+        
+        // Handle special 3C transaction first if it exists
+        if (is3CardGame) {
+            const threeCardPlayer = players.find(p => (playerStatus[p.id] || "").toUpperCase().includes("3C"));
+            if (threeCardPlayer) {
+                players.forEach(p => {
+                    if (p.id === threeCardPlayer.id) {
+                        scores[p.id] += rules.attaKasu * (players.length - 1);
+                    } else {
+                        scores[p.id] -= rules.attaKasu;
+                    }
+                });
+            }
+        }
+
 
         // Calculate loser scores and sum them up for the winner
         players.forEach(player => {
             if (player.id !== winnerId) {
                 const loserPoints = basePoints[player.id];
-                // Loser's score is their points + attaKasu, made negative
-                scores[player.id] = -(loserPoints + rules.attaKasu);
-                // Winner gets the loser's points + attaKasu
-                totalPointsForWinner += loserPoints + rules.attaKasu;
+                // Loser's score is their points, made negative. Their base score already includes deductions.
+                scores[player.id] -= loserPoints;
+                // Winner gets the loser's points
+                totalPointsForWinner += loserPoints;
             }
         });
 
         // Winner also gets their own base points
         totalPointsForWinner += basePoints[winnerId];
 
-        scores[winnerId] = totalPointsForWinner;
+        scores[winnerId] += totalPointsForWinner;
         
         return scores;
     }
