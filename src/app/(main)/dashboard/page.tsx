@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo } from "react";
@@ -27,36 +28,34 @@ export default function DashboardPage() {
       };
     }
 
-    // Total Games
     const totalGames = gameHistory.length;
 
-    // Wins & Win Rate
     let wins = 0;
     gameHistory.forEach(game => {
-      const isPlayerInGame = game.players.some(p => p.name === user.name);
-      if (!isPlayerInGame) return;
+      const userPlayer = game.players.find(p => p.name === user.name);
+      if (!userPlayer) return;
 
       const finalScores: Record<string, number> = {};
       game.players.forEach(p => finalScores[p.id] = 0);
       game.rounds.forEach(round => {
         Object.entries(round.scores).forEach(([playerId, score]) => {
-          finalScores[playerId] += score;
+          finalScores[playerId] = (finalScores[playerId] || 0) + score;
         });
       });
       
-      const userPlayer = game.players.find(p => p.name === user.name);
-      if(!userPlayer) return;
-
       const userScore = finalScores[userPlayer.id];
       const maxScore = Math.max(...Object.values(finalScores));
 
       if (userScore === maxScore && maxScore > 0) {
-        wins++;
+        // Handle ties for winner
+        const winners = Object.values(finalScores).filter(score => score === maxScore);
+        if (winners.length === 1) {
+            wins++;
+        }
       }
     });
     const winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
 
-    // Active Players, Last Game Score from the most recent game
     const lastGame = gameHistory[gameHistory.length - 1];
     const activePlayers = lastGame.players.length;
     
