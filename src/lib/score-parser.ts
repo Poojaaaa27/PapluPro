@@ -3,8 +3,8 @@ import type { Player, GameRules } from "./types";
 
 /**
  * Parses a player's status code to extract distinct parts like paplu count, 
- * numeric value, and flags (S, MS, F, D, G, 3C).
- * @param code The player's status code (e.g., "1P-25", "MS", "3C2P-F-D").
+ * numeric value, and flags (3C, S, MS, F, D, G).
+ * @param code The player's status code (e.g., "1P-25", "MS", "3C1P-D").
  * @returns An object containing the parsed information.
  */
 function parsePlayerStatus(code: string) {
@@ -35,8 +35,7 @@ function parsePlayerStatus(code: string) {
 
 
 /**
- * Calculates the scores for all players for a single round based on their status codes
- * following a multi-step transactional logic.
+ * Calculates the scores for all players for a single round based on their status codes.
  * @param playerStatus A record of player IDs to their status codes for the round.
  * @param players An array of all players in the game.
  * @param rules The current game rules.
@@ -51,79 +50,80 @@ export function calculateRoundScores(
 ): Record<string, number> {
     const scores: Record<string, number> = {};
     players.forEach(p => scores[p.id] = 0);
-    const numPlayers = players.length;
-    if (numPlayers < 2) return scores;
+    
+    if (players.length < 2) return scores;
 
     const allPlayerFlags = players.map(p => ({
         playerId: p.id,
         flags: parsePlayerStatus(playerStatus[p.id] || "")
     }));
+
+    const winnerData = allPlayerFlags.find(p => p.flags.isWinner);
     
-    // Transaction 1: 3-Card Winner Payout (if applicable)
-    if (is3CardGame) {
-        const threeCardWinner = allPlayerFlags.find(p => p.flags.is3C);
-        if (threeCardWinner) {
-            const amount = rules.attaKasu;
-            scores[threeCardWinner.playerId] += amount * (numPlayers - 1);
-            players.forEach(p => {
-                if (p.id !== threeCardWinner.playerId) {
-                    scores[p.id] -= amount;
-                }
-            });
-        }
+    // If there's no winner, the round is incomplete or scored differently.
+    // For now, assume no points are exchanged if there is no "D".
+    if (!winnerData) {
+        return scores;
     }
 
-    // Transaction 2: Paplu Payouts (separate exchanges)
-    allPlayerFlags.forEach(playerWithFlags => {
-        let papluAmount = 0;
-        if (playerWithFlags.flags.papluCount === 1) papluAmount = rules.singlePaplu;
-        if (playerWithFlags.flags.papluCount === 2) papluAmount = rules.doublePaplu;
-        if (playerWithFlags.flags.papluCount === 3) papluAmount = rules.triplePaplu;
+    let winnerPot = 0;
+    const winnerId = winnerData.playerId;
 
-        if (papluAmount > 0) {
-            scores[playerWithFlags.playerId] += papluAmount * (numPlayers - 1);
-            players.forEach(p => {
-                if (p.id !== playerWithFlags.playerId) {
-                    scores[p.id] -= papluAmount;
-                }
-            });
+    allPlayerFlags.forEach(playerData => {
+        if (playerData.playerId === winnerId) return; // Skip the winner
+
+        const loserId = playerData.playerId;
+        const loserFlags = playerData.flags;
+        let amountOwed = 0;
+
+        // Calculate amount owed based on loser's status
+        if (loserFlags.isScoot) {
+            amountOwed = rules.scoot;
+        } else if (loserFlags.isMidScoot) {
+            amountOwed = rules.midScoot;
+        } else if (loserFlags.isFull) {
+            amountOwed = rules.full;
+        } else {
+            amountOwed = Math.abs(loserFlags.points) * rules.perPoint;
         }
+
+        // Add Paplu points to the amount owed
+        if (loserFlags.papluCount === 1) amountOwed += rules.singlePaplu;
+        if (loserFlags.papluCount === 2) amountOwed += rules.doublePaplu;
+        if (loserFlags.papluCount === 3) amountOwed += rules.triplePaplu;
+
+        // Add 3C points (attaKasu) if the loser has 3C
+        if (is3CardGame && loserFlags.is3C) {
+             amountOwed += rules.attaKasu;
+        }
+
+        // Apply Gate from winner (doubling), except for scoot/mid-scoot
+        if (winnerData.flags.isGate && !loserFlags.isScoot && !loserFlags.isMidScoot) {
+            
+            // We need to separate the base points from the paplu/3c points if they are not doubled
+            let baseAmount = 0;
+             if (loserFlags.isFull) {
+                baseAmount = rules.full;
+            } else {
+                baseAmount = Math.abs(loserFlags.points) * rules.perPoint;
+            }
+
+            let specialAmount = amountOwed - baseAmount;
+            amountOwed = (baseAmount * 2) + specialAmount;
+        }
+        
+        scores[loserId] -= amountOwed;
+        winnerPot += amountOwed;
     });
 
-    // Transaction 3: Round Winner takes the pot
-    const winnerData = allPlayerFlags.find(p => p.flags.isWinner);
-    if (winnerData) {
-        const winnerId = winnerData.playerId;
-        const winnerFlags = winnerData.flags;
-        let pot = 0;
-
-        allPlayerFlags.forEach(playerData => {
-            if (playerData.playerId === winnerId) return; // Skip the winner
-
-            const loserFlags = playerData.flags;
-            let amountOwed = 0;
-
-            if (loserFlags.isScoot) {
-                amountOwed = rules.scoot;
-            } else if (loserFlags.isMidScoot) {
-                amountOwed = rules.midScoot;
-            } else if (loserFlags.isFull) {
-                amountOwed = rules.full;
-            } else {
-                amountOwed = Math.abs(loserFlags.points) * rules.perPoint;
-            }
-            
-            // Apply Gate from winner (doubling), except for scoot/mid-scoot
-            if (winnerFlags.isGate && !loserFlags.isScoot && !loserFlags.isMidScoot) {
-                amountOwed *= 2;
-            }
-            
-            scores[playerData.playerId] -= amountOwed;
-            pot += amountOwed;
-        });
-
-        scores[winnerId] += pot;
+    // Handle 3C transaction separately if the WINNER has 3C
+    if(is3CardGame && winnerData.flags.is3C) {
+        const threeCardWinnings = rules.attaKasu * (players.length -1);
+        winnerPot += threeCardWinnings;
     }
+
+
+    scores[winnerId] += winnerPot;
     
     return scores;
 }
