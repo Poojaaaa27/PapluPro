@@ -1,3 +1,4 @@
+
 "use client";
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,7 +28,7 @@ export function GameSetupForm({ players, setPlayers, gameDetails, setGameDetails
   const addPlayer = () => {
     if (newPlayerName.trim() && !players.find(p => p.name === newPlayerName.trim())) {
       const newPlayer: Player = {
-        id: (players.length + 1).toString(),
+        id: `${Date.now()}-${Math.random()}`,
         name: newPlayerName.trim(),
       };
       setPlayers([...players, newPlayer]);
