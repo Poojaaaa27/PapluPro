@@ -21,25 +21,57 @@ export default function RulesPage() {
     };
 
     const ruleEntries: { key: keyof GameRules, label: string, description: string }[] = [
-        { key: "basePoints", label: "Base Points", description: "Points for a 3-card combination (if active)." },
-        { key: "scoot", label: "Scoot", description: "Points for a Scoot (Show)." },
-        { key: "midScoot", label: "Mid Scoot", description: "Points for a Middle Scoot." },
-        { key: "full", label: "Full", description: "Points for a Full hand." },
-        { key: "perPoint", label: "Per Point", description: "Multiplier for card points." },
-        { key: "singlePaplu", label: "Single Paplu", description: "Point value for a single paplu." },
-        { key: "doublePaplu", label: "Double Paplu", description: "Point value for a double paplu." },
-        { key: "triplePaplu", label: "Triple Paplu", description: "Point value for a triple paplu." },
+        { key: "basePoints", label: "3-Card Hand (3C)", description: "Points collected by the 3-card winner from all other players." },
+        { key: "scoot", label: "Scoot / Drop (S)", description: "Fixed points a player pays to the winner for an initial drop." },
+        { key: "midScoot", label: "Mid Scoot (MS)", description: "Fixed points a player pays to the winner for a middle drop." },
+        { key: "full", label: "Full Hand (F)", description: "Fixed points a player pays to the winner if they don't meet minimum conditions." },
+        { key: "perPoint", label: "Per Point Multiplier", description: "Multiplier for a regular loser's card points." },
+        { key: "singlePaplu", label: "Single Paplu (1P)", description: "Points collected from all others for holding one paplu." },
+        { key: "doublePaplu", label: "Double Paplu (2P)", description: "Points collected from all others for holding two paplus." },
+        { key: "triplePaplu", label: "Triple Paplu (3P)", description: "Points collected from all others for holding three paplus." },
     ];
     
     const gameRuleExplanations = [
-        { code: "D", meaning: "Declare / Winner", description: "The player who won the round. They collect points from all losers." },
-        { code: "F", meaning: "Full Hand", description: "A losing player with a full hand. Owes a fixed amount to the winner." },
-        { code: "S", meaning: "Scoot / Show", description: "A losing player who showed their hand. Owes a fixed amount to the winner." },
-        { code: "MS", meaning: "Mid Scoot", description: "A losing player who did a middle scoot. Owes a fixed (higher) amount." },
-        { code: "G", meaning: "Gate (Winner Only)", description: "When added to a winner's input (e.g., 'D,G'), it doubles the points collected from regular losers." },
-        { code: "-<#>", meaning: "Points", description: "For a regular losing player, this is the sum of their card points (e.g., -25)." },
-        { code: "3C", meaning: "3-Card Hand", description: "A special hand. Collects 'Base Points' from all other players before the winner is paid." },
-        { code: "1P/2P/3P", meaning: "Paplu (Joker)", description: "Having one, two, or three jokers. Collects points from all other players." },
+        {
+            code: "3C",
+            meaning: "3-Card Hand",
+            description: "For the first 3 cards, the winner of the three cards in each round will receive a pre-defined amount (default: 10 points) from every other player."
+        },
+        {
+            code: "1P/2P/3P",
+            meaning: "Paplu (Joker)",
+            description: "If a player holds one, two, or three paplus (jokers), all other players must pay them a pre-defined amount (e.g., 10 for 1P, 30 for 2P, 50 for 3P). This transaction happens independently of who wins the round."
+        },
+        {
+            code: "S",
+            meaning: "Scoot / Drop",
+            description: "A player who excuses themselves at their first chance (an initial drop) pays a fixed 'Scoot' amount (default: 10 points) to the winner of that round."
+        },
+        {
+            code: "MS",
+            meaning: "Mid Scoot",
+            description: "A player who drops out in the middle of a round pays a fixed 'Mid Scoot' amount (default: 20 points) to the winner."
+        },
+        {
+            code: "F",
+            meaning: "Full Hand",
+            description: "If a player continues playing but fails to meet the minimum required conditions before someone wins, they must pay a fixed 'Full Hand' amount (default: 40 points) to the winner."
+        },
+        {
+            code: "-<#>",
+            meaning: "Normal Points",
+            description: "A player who doesn't drop but loses the game pays the winner based on the value of the cards remaining in their hand. The total card value is multiplied by the 'Per Point Multiplier'."
+        },
+        {
+            code: "G",
+            meaning: "Gate / Double",
+            description: "A winning player can claim double points from all other playing opponents. However, they cannot claim double from players who opted for 'Scoot' (S) or 'Mid Scoot' (MS)."
+        },
+        {
+            code: "D",
+            meaning: "Winner (Declare)",
+            description: "Denotes the winner of the round. All other players will pay the winner based on their points and status, after adjusting for any Paplu or 3C payouts."
+        }
     ];
 
     return (
@@ -57,14 +89,14 @@ export default function RulesPage() {
                 <CardHeader>
                     <CardTitle className="font-headline">Game Inputs & Rules</CardTitle>
                     <CardDescription>
-                        A reference guide for the input codes used during score entry.
+                        A reference guide for the input codes used during score entry and how scores are calculated.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">
                         {gameRuleExplanations.map((rule) => (
                              <div key={rule.code} className="flex items-start gap-4">
-                                <code className="font-mono text-base font-bold bg-muted text-primary rounded-md px-2 py-1 mt-1">{rule.code}</code>
+                                <code className="font-mono text-base font-bold bg-muted text-primary rounded-md px-2 py-1 mt-1 shrink-0">{rule.code}</code>
                                 <div className="flex-1">
                                     <p className="font-bold font-headline">{rule.meaning}</p>
                                     <p className="text-sm text-muted-foreground">{rule.description}</p>
