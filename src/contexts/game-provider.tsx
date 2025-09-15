@@ -2,22 +2,10 @@
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, ReactNode, useContext } from "react";
-import type { Player, GameRound, GameDetails, PlayerRoundStatus } from "@/lib/types";
+import type { Player, GameRound, GameDetails } from "@/lib/types";
 import { calculateRoundScores } from "@/lib/score-parser";
 import { RulesContext } from "./rules-provider";
 import { format } from "date-fns";
-
-const defaultStatus: PlayerRoundStatus = {
-  points: 0,
-  isWinner: false,
-  isScoot: false,
-  isMidScoot: false,
-  isFull: false,
-  isGate: false,
-  is3C: false,
-  papluCount: 0,
-  rawInput: "",
-};
 
 
 const mockPlayers: Player[] = [
@@ -29,9 +17,9 @@ const mockPlayers: Player[] = [
 const mockRounds: GameRound[] = Array.from({ length: 15 }, (_, i) => ({
   id: i + 1,
   playerStatus: {
-    "1": defaultStatus,
-    "2": defaultStatus,
-    "3": defaultStatus,
+    "1": "",
+    "2": "",
+    "3": "",
   },
   scores: {},
 }));
@@ -43,7 +31,7 @@ interface GameContextType {
   setRounds: React.Dispatch<React.SetStateAction<GameRound[]>>;
   gameDetails: GameDetails;
   setGameDetails: React.Dispatch<React.SetStateAction<GameDetails>>;
-  handleStatusChange: (roundId: number, playerId: string, newStatus: Partial<PlayerRoundStatus>) => void;
+  handleStatusChange: (roundId: number, playerId: string, rawInput: string) => void;
   resetGame: () => void;
   totalScores: Record<string, number>;
 }
@@ -66,25 +54,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }
   const { rules } = rulesContext;
 
-  const handleStatusChange = useCallback((roundId: number, playerId: string, newStatus: Partial<PlayerRoundStatus>) => {
+  const handleStatusChange = useCallback((roundId: number, playerId: string, rawInput: string) => {
     setRounds(prevRounds => {
       return prevRounds.map(r => {
         if (r.id === roundId) {
-          const currentStatus = r.playerStatus[playerId] || defaultStatus;
-          const updatedPlayerStatus = { ...currentStatus, ...newStatus };
-
-          // Logic to ensure winner/scoot/midscoot/full are mutually exclusive
-          if (newStatus.isWinner) {
-            updatedPlayerStatus.isScoot = false;
-            updatedPlayerStatus.isMidScoot = false;
-            updatedPlayerStatus.isFull = false;
-          } else if (newStatus.isScoot || newStatus.isMidScoot || newStatus.isFull) {
-            updatedPlayerStatus.isWinner = false;
-          }
-
-          const newRoundPlayerStatus = { ...r.playerStatus, [playerId]: updatedPlayerStatus };
-          const newScores = calculateRoundScores(newRoundPlayerStatus, players, rules, gameDetails.is3CardGame);
-          return { ...r, playerStatus: newRoundPlayerStatus, scores: newScores };
+          const newPlayerStatus = { ...r.playerStatus, [playerId]: rawInput };
+          const newScores = calculateRoundScores(newPlayerStatus, players, rules, gameDetails.is3CardGame);
+          return { ...r, playerStatus: newPlayerStatus, scores: newScores };
         }
         return r;
       });
