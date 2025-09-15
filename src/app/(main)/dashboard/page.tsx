@@ -1,8 +1,10 @@
 "use client";
 
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
+import { useHistory } from "@/hooks/use-history";
 import { ArrowRight, Gamepad2, History, Trophy, Users } from "lucide-react";
 import Link from "next/link";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
@@ -10,7 +12,74 @@ import Image from 'next/image';
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { gameHistory } = useHistory();
   const heroImage = PlaceHolderImages.find(p => p.id === 'dashboard-hero');
+
+  const dashboardStats = useMemo(() => {
+    if (!user || gameHistory.length === 0) {
+      return {
+        totalGames: 0,
+        wins: 0,
+        winRate: 0,
+        activePlayers: 0,
+        lastGameScore: 0,
+        lastGameOpponent: "N/A",
+      };
+    }
+
+    // Total Games
+    const totalGames = gameHistory.length;
+
+    // Wins & Win Rate
+    let wins = 0;
+    gameHistory.forEach(game => {
+      const isPlayerInGame = game.players.some(p => p.name === user.name);
+      if (!isPlayerInGame) return;
+
+      const finalScores: Record<string, number> = {};
+      game.players.forEach(p => finalScores[p.id] = 0);
+      game.rounds.forEach(round => {
+        Object.entries(round.scores).forEach(([playerId, score]) => {
+          finalScores[playerId] += score;
+        });
+      });
+      
+      const userPlayer = game.players.find(p => p.name === user.name);
+      if(!userPlayer) return;
+
+      const userScore = finalScores[userPlayer.id];
+      const maxScore = Math.max(...Object.values(finalScores));
+
+      if (userScore === maxScore && maxScore > 0) {
+        wins++;
+      }
+    });
+    const winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
+
+    // Active Players, Last Game Score from the most recent game
+    const lastGame = gameHistory[gameHistory.length - 1];
+    const activePlayers = lastGame.players.length;
+    
+    let lastGameScore = 0;
+    let lastGameOpponent = "N/A";
+    
+    const lastGameUser = lastGame.players.find(p => p.name === user.name);
+    if (lastGameUser) {
+        lastGameScore = lastGame.rounds.reduce((total, round) => total + (round.scores[lastGameUser.id] || 0), 0);
+    }
+    
+    lastGameOpponent = lastGame.teamName;
+
+
+    return {
+      totalGames,
+      wins,
+      winRate,
+      activePlayers,
+      lastGameScore,
+      lastGameOpponent,
+    };
+  }, [gameHistory, user]);
 
   return (
     <div className="py-8">
@@ -46,8 +115,8 @@ export default function DashboardPage() {
             <History className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
-            <p className="text-xs text-muted-foreground">+2 from last month</p>
+            <div className="text-2xl font-bold">{dashboardStats.totalGames}</div>
+            <p className="text-xs text-muted-foreground">All time</p>
           </CardContent>
         </Card>
         <Card className="hover:shadow-lg transition-shadow duration-300">
@@ -56,8 +125,8 @@ export default function DashboardPage() {
             <Trophy className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">8</div>
-            <p className="text-xs text-muted-foreground">66% win rate</p>
+            <div className="text-2xl font-bold">{dashboardStats.wins}</div>
+            <p className="text-xs text-muted-foreground">{dashboardStats.winRate}% win rate</p>
           </CardContent>
         </Card>
         <Card className="hover:shadow-lg transition-shadow duration-300">
@@ -66,8 +135,8 @@ export default function DashboardPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">4</div>
-            <p className="text-xs text-muted-foreground">in your main group</p>
+            <div className="text-2xl font-bold">{dashboardStats.activePlayers}</div>
+            <p className="text-xs text-muted-foreground">In last game</p>
           </CardContent>
         </Card>
         <Card className="hover:shadow-lg transition-shadow duration-300">
@@ -76,8 +145,8 @@ export default function DashboardPage() {
             <Gamepad2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+250</div>
-            <p className="text-xs text-muted-foreground">vs. Team Rocket</p>
+            <div className="text-2xl font-bold">{dashboardStats.lastGameScore > 0 ? `+${dashboardStats.lastGameScore}` : dashboardStats.lastGameScore}</div>
+            <p className="text-xs text-muted-foreground">vs. {dashboardStats.lastGameOpponent}</p>
           </CardContent>
         </Card>
       </div>
@@ -103,7 +172,7 @@ export default function DashboardPage() {
             <CardHeader>
                 <CardTitle className="font-headline">Review Past Games</CardTitle>
                 <CardDescription>Look back at your glorious victories and crushing defeats.</CardDescription>
-            </CardHeader>
+            </Header>
             <CardContent className="flex-grow flex items-center justify-center">
                  <History className="w-24 h-24 text-muted" />
             </CardContent>
