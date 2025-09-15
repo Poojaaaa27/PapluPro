@@ -1,3 +1,4 @@
+
 import type { Player, GameRules } from "./types";
 
 interface ParsedStatus {
@@ -13,7 +14,7 @@ interface ParsedStatus {
 
 /**
  * Parses the raw input string for a player into a structured status object.
- * @param rawInput The raw string code (e.g., "1P-25", "3CG-D", "3C1P-D").
+ * @param rawInput The raw string code (e.g., "1P-25", "3CG-D", "3C1P-D", "MS").
  * @returns A ParsedStatus object.
  */
 function parsePlayerStatus(rawInput: string): ParsedStatus {
@@ -30,50 +31,46 @@ function parsePlayerStatus(rawInput: string): ParsedStatus {
     
     if (!rawInput) return status;
 
-    const parts = rawInput.toUpperCase().split('-');
+    const upperInput = rawInput.toUpperCase();
+    
+    // Split by '-' to handle pre- and post-dash parts separately
+    const parts = upperInput.split('-');
     const preDashPart = parts[0] || "";
-    const postDashPart = parts[1] || "";
-
-    const combinedParts = preDashPart + postDashPart;
+    const postDashPart = parts.length > 1 ? parts.slice(1).join('-') : "";
     
-    // Check for paplu first and remove them from the string
-    if (combinedParts.includes("3P")) {
-        status.papluCount = 3;
-    } else if (combinedParts.includes("2P")) {
-        status.papluCount = 2;
-    } else if (combinedParts.includes("1P")) {
-        status.papluCount = 1;
+    // --- Check for flags in the entire string ---
+    if (upperInput.includes("3P")) status.papluCount = 3;
+    else if (upperInput.includes("2P")) status.papluCount = 2;
+    else if (upperInput.includes("1P")) status.papluCount = 1;
+
+    if (upperInput.includes("3C")) status.is3C = true;
+    if (upperInput.includes("G")) status.isGate = true;
+    if (upperInput.includes("D")) status.isWinner = true;
+    
+    // MS can be a standalone code or part of a larger string
+    if (upperInput.includes("MS")) status.isMidScoot = true;
+
+    // --- Check for winner-pot specific flags from the part after dash ---
+    // Or if there is no dash, these can be standalone.
+    const potPart = postDashPart || preDashPart;
+
+    // A simple "S" after a dash or alone means scoot.
+    if (potPart === "S") status.isScoot = true;
+    if (potPart.includes("F")) status.isFull = true;
+    
+    // --- Extract numeric points ---
+    // Points are usually after the dash, but can be standalone.
+    const pointMatch = (postDashPart || upperInput).match(/-?\d+/);
+    if (pointMatch) {
+        status.points = parseInt(pointMatch[0], 10);
     }
     
-    // Check for other flags
-    if (combinedParts.includes("3C")) status.is3C = true;
-    if (combinedParts.includes("G")) status.isGate = true;
-    if (combinedParts.includes("D")) status.isWinner = true;
-
-    // Handle post-dash part for scoot, full, or points
-    if (postDashPart) {
-        if (postDashPart.includes("S")) {
-           status.isScoot = true;
-        } else if (postDashPart.includes("MS")) {
-            status.isMidScoot = true;
-        } else if (postDashPart.includes("F")) {
-            status.isFull = true;
-        }
-        
-        // Extract numeric points from post-dash part
-        const pointMatch = postDashPart.match(/-?\d+/);
-        if (pointMatch) {
-            status.points = parseInt(pointMatch[0], 10);
-        }
-    } else { // Handle pre-dash part if no dash
-        const pointMatch = preDashPart.match(/-?\d+/);
-        if (pointMatch) {
-            status.points = parseInt(pointMatch[0], 10);
-        }
-    }
+    // Mid Scoot (MS) implies a point value of 20 for the pot if the player is a loser.
+    // The parser just flags it; the calculation logic handles the point value.
 
     return status;
 }
+
 
 /**
  * Calculates scores for a round based on raw input strings.
@@ -104,16 +101,15 @@ export function calculateRoundScores(
     // Transaction 1.1: 3C (attaKasu) Payout
     if (is3CardGame) {
         const threeCardPlayers = allPlayerFlags.filter(p => p.flags.is3C);
-        if (threeCardPlayers.length === 1) {
-            const threeCardPlayerId = threeCardPlayers[0].playerId;
+        threeCardPlayers.forEach(threeCardPlayer => {
             const winnings = rules.attaKasu * (players.length - 1);
-            scores[threeCardPlayerId] += winnings;
+            scores[threeCardPlayer.playerId] += winnings;
             players.forEach(p => {
-                if (p.id !== threeCardPlayerId) {
+                if (p.id !== threeCardPlayer.playerId) {
                     scores[p.id] -= rules.attaKasu;
                 }
             });
-        }
+        });
     }
 
     // Transaction 1.2: Paplu Payouts
