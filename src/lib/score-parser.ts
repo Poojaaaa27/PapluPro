@@ -15,10 +15,10 @@ function parsePlayerStatus(code: string) {
     const result = {
         isWinner: upperCode.includes("D"),
         isGate: upperCode.includes("G"),
-        // Global transactions (typically before '-')
+        // Global transactions
         is3C: false,
         papluCount: 0,
-        // Winner pot transactions (typically after '-')
+        // Winner pot transactions
         isScoot: false,
         isMidScoot: false,
         isFull: false,
@@ -28,30 +28,36 @@ function parsePlayerStatus(code: string) {
     // Use a regex to find parts before and after the first hyphen
     const parts = upperCode.split('-');
     const preHyphenPart = parts[0] || '';
-    const postHyphenPart = parts.length > 1 ? parts.slice(1).join('-') : preHyphenPart;
-    const hasHyphen = parts.length > 1;
-
-    // --- Process Pre-Hyphen Part (or the whole string if no hyphen) for global flags ---
-    const partForGlobals = hasHyphen ? preHyphenPart : upperCode;
-
-    if (partForGlobals.includes("3C")) result.is3C = true;
-    if (partForGlobals.includes("1P")) result.papluCount = 1;
-    if (partForGlobals.includes("2P")) result.papluCount = 2;
-    if (partForGlobals.includes("3P")) result.papluCount = 3;
+    const postHyphenPart = parts.length > 1 ? parts.slice(1).join('-') : '';
+    
+    // --- Process Pre-Hyphen Part (and the whole string) for global flags ---
+    const globalPart = preHyphenPart;
+    if (globalPart.includes("3C")) result.is3C = true;
+    if (globalPart.includes("1P")) result.papluCount = 1;
+    if (globalPart.includes("2P")) result.papluCount = 2;
+    if (globalPart.includes("3P")) result.papluCount = 3;
 
 
     // --- Process Post-Hyphen Part (or the whole string if no hyphen) for winner pot ---
-    const partForPot = hasHyphen ? postHyphenPart : upperCode;
+    const potPart = postHyphenPart || preHyphenPart;
 
-    if (partForPot.includes("S")) result.isScoot = true;
-    if (partForPot.includes("MS")) result.isMidScoot = true;
-    if (partForPot.includes("F")) result.isFull = true;
+    if (potPart.includes("S")) result.isScoot = true;
+    if (potPart.includes("MS")) result.isMidScoot = true;
+    if (potPart.includes("F")) result.isFull = true;
     
-    // Extracts numeric value, but not from paplu codes
-    const numericMatch = partForPot.replace(/\d+P/g, '').match(/-?\d+/);
+    // Extracts numeric value, ensuring it's not part of a paplu code unless separated
+    const numericMatch = potPart.replace(/\d+P/g, '').match(/-?\d+/);
     if (numericMatch) {
         result.points = parseInt(numericMatch[0], 10);
     }
+    
+    // Handle cases where there is no hyphen, so flags might be for the pot
+    if (parts.length === 1) {
+        if(preHyphenPart.includes("S")) result.isScoot = true;
+        if(preHyphenPart.includes("MS")) result.isMidScoot = true;
+        if(preHyphenPart.includes("F")) result.isFull = true;
+    }
+
 
     return result;
 }
@@ -87,10 +93,10 @@ export function calculateRoundScores(
         const threeCardPlayer = allPlayerFlags.find(p => p.flags.is3C);
         if (threeCardPlayer) {
             const winnings = rules.attaKasu * (players.length - 1);
-            scores[threeCardPlayer.playerId] += winnings;
+            scores[threeCardPlayer.playerId] = (scores[threeCardPlayer.playerId] || 0) + winnings;
             players.forEach(p => {
                 if (p.id !== threeCardPlayer.playerId) {
-                    scores[p.id] -= rules.attaKasu;
+                    scores[p.id] = (scores[p.id] || 0) - rules.attaKasu;
                 }
             });
         }
@@ -105,10 +111,10 @@ export function calculateRoundScores(
 
         if (papluPayment > 0) {
             const winnings = papluPayment * (players.length - 1);
-            scores[playerData.playerId] += winnings;
+            scores[playerData.playerId] = (scores[playerData.playerId] || 0) + winnings;
             players.forEach(p => {
                 if (p.id !== playerData.playerId) {
-                    scores[p.id] -= papluPayment;
+                    scores[p.id] = (scores[p.id] || 0) - papluPayment;
                 }
             });
         }
@@ -143,12 +149,13 @@ export function calculateRoundScores(
                 amountOwed *= 2;
             }
 
-            scores[loserId] -= amountOwed;
+            scores[loserId] = (scores[loserId] || 0) - amountOwed;
             winnerPot += amountOwed;
         });
 
-        scores[winnerId] += winnerPot;
+        scores[winnerId] = (scores[winnerId] || 0) + winnerPot;
     }
     
     return scores;
 }
+
