@@ -20,6 +20,8 @@ interface ScoresTableProps {
 
 export function ScoresTable({ rounds, players, totalScores }: ScoresTableProps) {
   const getRoundTotal = (round: GameRound) => {
+    // This function calculates the simple sum of all scores in a given round.
+    // There is no balancing; it will display the exact total.
     return Object.values(round.scores).reduce((sum, score) => sum + score, 0);
   };
 
