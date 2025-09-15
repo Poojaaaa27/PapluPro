@@ -9,6 +9,8 @@ import { ScoresTable } from "@/components/game/scores-table";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { RoundsTable } from "@/components/game/rounds-table";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function GameHistoryDetailPage() {
     const router = useRouter();
@@ -64,8 +66,8 @@ export default function GameHistoryDetailPage() {
     });
 
     return (
-        <div className="py-8">
-            <div className="flex items-center justify-between flex-wrap gap-4 mb-8">
+        <div className="py-8 space-y-8">
+            <div className="flex items-center justify-between flex-wrap gap-4">
                 <div className="flex items-center gap-4">
                     <Button variant="outline" size="icon" onClick={() => router.back()}>
                         <ArrowLeft />
@@ -80,11 +82,33 @@ export default function GameHistoryDetailPage() {
                     </div>
                 </div>
             </div>
-            <ScoresTable
-                players={gameSession.players}
-                rounds={gameSession.rounds}
-                totalScores={totalScores}
-            />
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline">Game Sheet</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <RoundsTable
+                        players={gameSession.players}
+                        rounds={gameSession.rounds}
+                        onStatusChange={() => {}} // Read-only, so no-op
+                        isOrganizer={false} // Force read-only view
+                    />
+                </CardContent>
+            </Card>
+            
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline">Final Scores</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <ScoresTable
+                        players={gameSession.players}
+                        rounds={gameSession.rounds}
+                        totalScores={totalScores}
+                    />
+                </CardContent>
+            </Card>
         </div>
     );
 }
