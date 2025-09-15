@@ -23,7 +23,7 @@ function parsePlayerStatus(code: string) {
     if (upperCode.includes("1P")) flags.papluCount = 1;
     if (upperCode.includes("2P")) flags.papluCount = 2;
     if (upperCode.includes("3P")) flags.papluCount = 3;
-
+    
     // Extracts numeric value, including negative numbers, but not from paplu codes
     const numericMatch = upperCode.replace(/\d+P/g, '').match(/-?\d+/);
     if (numericMatch) {
@@ -55,55 +55,38 @@ export function calculateRoundScores(
 
     const allPlayerFlags: Record<string, ReturnType<typeof parsePlayerStatus>> = {};
     let winnerId: string | null = null;
-    let threeCardPlayerId: string | null = null;
+    let threeCardWinnerId: string | null = null;
     
     players.forEach(p => {
         const flags = parsePlayerStatus(playerStatus[p.id] || "");
         allPlayerFlags[p.id] = flags;
         if (flags.isWinner) winnerId = p.id;
-        if (flags.is3C) threeCardPlayerId = p.id;
+        if (flags.is3C) threeCardWinnerId = p.id;
     });
 
-    // === Transaction 1: 3-Card Winner ===
-    if (is3CardGame && threeCardPlayerId) {
+    // Transaction 1: 3-Card Winner Payout (if applicable)
+    if (is3CardGame && threeCardWinnerId) {
         const amount = rules.attaKasu;
-        scores[threeCardPlayerId] += amount * (numPlayers - 1);
+        scores[threeCardWinnerId] += amount * (numPlayers - 1);
         players.forEach(p => {
-            if (p.id !== threeCardPlayerId) {
+            if (p.id !== threeCardWinnerId) {
                 scores[p.id] -= amount;
             }
         });
     }
 
-    // === Transaction 2: Paplu Payments ===
-    players.forEach(p => {
-        const flags = allPlayerFlags[p.id];
-        let papluAmount = 0;
-        if (flags.papluCount === 1) papluAmount = rules.singlePaplu;
-        if (flags.papluCount === 2) papluAmount = rules.doublePaplu;
-        if (flags.papluCount === 3) papluAmount = rules.triplePaplu;
-
-        if (papluAmount > 0) {
-            scores[p.id] += papluAmount * (numPlayers - 1);
-            players.forEach(otherPlayer => {
-                if (otherPlayer.id !== p.id) {
-                    scores[otherPlayer.id] -= papluAmount;
-                }
-            });
-        }
-    });
-
-    // === Transaction 3: Round Winner Payments ===
+    // Transaction 2: Round Winner takes the pot
     if (winnerId) {
         const winnerFlags = allPlayerFlags[winnerId];
         let pot = 0;
 
         players.forEach(p => {
-            if (p.id === winnerId) return;
+            if (p.id === winnerId) return; // Skip the winner
 
             const loserFlags = allPlayerFlags[p.id];
             let amountOwed = 0;
 
+            // Determine base amount owed from status
             if (loserFlags.isScoot) {
                 amountOwed = rules.scoot;
             } else if (loserFlags.isMidScoot) {
@@ -114,7 +97,12 @@ export function calculateRoundScores(
                 amountOwed = Math.abs(loserFlags.points) * rules.perPoint;
             }
 
-            // Apply Gate from winner (doubling)
+            // Add paplu value to the amount owed to the winner
+            if (loserFlags.papluCount === 1) amountOwed += rules.singlePaplu;
+            if (loserFlags.papluCount === 2) amountOwed += rules.doublePaplu;
+            if (loserFlags.papluCount === 3) amountOwed += rules.triplePaplu;
+
+            // Apply Gate from winner (doubling), except for scoot/mid-scoot
             if (winnerFlags.isGate && !loserFlags.isScoot && !loserFlags.isMidScoot) {
                 amountOwed *= 2;
             }
