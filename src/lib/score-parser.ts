@@ -2,149 +2,128 @@
 import type { Player, GameRules } from "./types";
 
 /**
- * Parses a player's status code for a single round and calculates their individual hand value.
- * This function handles complex, hyphenated codes and various combinations.
- * @param code The player's status code (e.g., "1P-25", "MS", "3C2P-F").
- * @param rules The current game rules with point values.
- * @returns The calculated point value for that player's hand.
+ * Parses a player's status code to extract distinct parts like paplu count, 
+ * numeric value, and flags (S, MS, F, D, G, 3C).
+ * @param code The player's status code (e.g., "1P-25", "MS", "3C2P-F-D").
+ * @returns An object containing the parsed information.
  */
-export function parsePlayerStatus(code: string, rules: GameRules): number {
+function getPlayerFlags(code: string) {
     const upperCode = code.toUpperCase().trim();
-    if (!upperCode) return 0;
+    const flags = {
+        is3C: upperCode.includes("3C"),
+        isWinner: upperCode.includes("D"),
+        isGate: upperCode.includes("G"),
+        isScoot: upperCode.includes("S"),
+        isMidScoot: upperCode.includes("MS"),
+        isFull: upperCode.includes("F"),
+        papluCount: 0,
+        points: 0,
+    };
 
-    // This regex finds all codes and numbers in the string.
-    const tokens = upperCode.match(/[A-Z]+|\d+/g) || [];
-    let score = 0;
-    let numericValue = 0;
+    if (upperCode.includes("1P")) flags.papluCount = 1;
+    if (upperCode.includes("2P")) flags.papluCount = 2;
+    if (upperCode.includes("3P")) flags.papluCount = 3;
 
-    tokens.forEach(token => {
-        if (!isNaN(Number(token))) {
-            numericValue += parseInt(token, 10);
-        } else {
-            switch (token) {
-                case 'S':
-                    score += rules.scoot;
-                    break;
-                case 'MS':
-                    score += rules.midScoot;
-                    break;
-                case 'F':
-                    score += rules.full;
-                    break;
-                case '1P':
-                    score += rules.singlePaplu;
-                    break;
-                case '2P':
-                    score += rules.doublePaplu;
-                    break;
-                case '3P':
-                    score += rules.triplePaplu;
-                    break;
-                // '3C', 'D', 'G' have special logic in calculateRoundScores, but no intrinsic point value.
-                // Any other unrecognized alphabetic codes are ignored.
-            }
-        }
-    });
+    // Extracts numeric value, including negative numbers
+    const numericMatch = upperCode.match(/-?\d+/);
+    if (numericMatch) {
+        flags.points = parseInt(numericMatch[0], 10);
+    }
 
-    // Add the explicitly defined numeric value from the code
-    score += numericValue * rules.perPoint;
-
-    return score;
+    return flags;
 }
 
+
 /**
- * Calculates the scores for all players for a single round based on their status codes.
- * This function now follows a strict order of operations to ensure accuracy.
+ * Calculates the scores for all players for a single round based on their status codes
+ * following a transactional logic.
  * @param playerStatus A record of player IDs to their status codes for the round.
  * @param players An array of all players in the game.
  * @param rules The current game rules.
- * @param is3CardGame A boolean indicating if the 3 card game rule is active.
  * @returns A record of player IDs to their calculated scores for the round.
  */
 export function calculateRoundScores(
     playerStatus: Record<string, string>,
     players: Player[],
     rules: GameRules,
-    is3CardGame: boolean
 ): Record<string, number> {
     const scores: Record<string, number> = {};
-    const basePoints: Record<string, number> = {};
-    const upperPlayerStatus: Record<string, string> = {};
+    players.forEach(p => scores[p.id] = 0);
 
+    const numPlayers = players.length;
+    if (numPlayers < 2) return scores;
+
+    // === Pre-calculation Step: Get all player flags ===
+    const allPlayerFlags: Record<string, ReturnType<typeof getPlayerFlags>> = {};
     players.forEach(p => {
-        const status = playerStatus[p.id] || "";
-        upperPlayerStatus[p.id] = status.toUpperCase().trim();
-        basePoints[p.id] = parsePlayerStatus(status, rules);
-        scores[p.id] = 0; // Initialize scores at 0
+        allPlayerFlags[p.id] = getPlayerFlags(playerStatus[p.id] || "");
     });
+    
+    // === Transaction 1: 3 Cards (attaKasu) ===
+    const threeCardPlayerId = players.find(p => allPlayerFlags[p.id].is3C)?.id;
+    if (threeCardPlayerId) {
+        players.forEach(p => {
+            if (p.id === threeCardPlayerId) {
+                scores[p.id] += rules.attaKasu * (numPlayers - 1);
+            } else {
+                scores[p.id] -= rules.attaKasu;
+            }
+        });
+    }
 
-    // Step 1: Handle 3C transaction (attaKasu) if applicable
-    if (is3CardGame) {
-        const threeCardPlayerId = players.find(p => upperPlayerStatus[p.id].includes("3C"))?.id;
-        if (threeCardPlayerId) {
-            players.forEach(p => {
-                if (p.id === threeCardPlayerId) {
-                    scores[p.id] += rules.attaKasu * (players.length - 1);
+    // === Transaction 2: Paplus ===
+    players.forEach(p => {
+        const flags = allPlayerFlags[p.id];
+        let papluAmount = 0;
+        if (flags.papluCount === 1) papluAmount = rules.singlePaplu;
+        if (flags.papluCount === 2) papluAmount = rules.doublePaplu;
+        if (flags.papluCount === 3) papluAmount = rules.triplePaplu;
+
+        if (papluAmount > 0) {
+            players.forEach(otherPlayer => {
+                if (p.id === otherPlayer.id) {
+                    scores[p.id] += papluAmount * (numPlayers - 1);
                 } else {
-                    scores[p.id] -= rules.attaKasu;
+                    scores[otherPlayer.id] -= papluAmount;
                 }
             });
         }
-    }
-    
-    // Step 2: Add base points to the current scores
-    players.forEach(p => {
-        scores[p.id] += basePoints[p.id];
     });
-    
-    // Step 3: Handle Winner (D) logic
-    const winnerId = players.find(p => upperPlayerStatus[p.id].includes("D"))?.id;
+
+    // === Transaction 3: Round Winner Payout ===
+    const winnerId = players.find(p => allPlayerFlags[p.id].isWinner)?.id;
     if (winnerId) {
+        const winnerIsGate = allPlayerFlags[winnerId].isGate;
         let totalPot = 0;
-        players.forEach(p => {
-            if (p.id !== winnerId) {
-                totalPot += scores[p.id]; // Collect points from losers
+
+        players.forEach(loser => {
+            if (loser.id === winnerId) return;
+
+            const loserFlags = allPlayerFlags[loser.id];
+            let amountOwed = 0;
+
+            if (loserFlags.isScoot) {
+                amountOwed = rules.scoot;
+            } else if (loserFlags.isMidScoot) {
+                amountOwed = rules.midScoot;
+            } else if (loserFlags.isFull) {
+                amountOwed = rules.full;
+            } else {
+                // Normal points - points are what the loser PAYS, so we use their absolute value.
+                amountOwed = Math.abs(loserFlags.points);
             }
-        });
-        
-        // Winner gets their own points plus the pot
-        scores[winnerId] += totalPot; 
 
-        // Losers lose their points
-        players.forEach(p => {
-            if (p.id !== winnerId) {
-                scores[p.id] *= -1;
+            // Apply Gate/Double from winner, cannot apply to S or MS
+            if (winnerIsGate && !loserFlags.isScoot && !loserFlags.isMidScoot) {
+                amountOwed *= 2;
             }
+            
+            scores[loser.id] -= amountOwed;
+            totalPot += amountOwed;
         });
 
-    } else {
-        // No winner, everyone loses their points
-         players.forEach(p => {
-            scores[p.id] *= -1;
-        });
+        scores[winnerId] += totalPot;
     }
-
-    // Step 4: Apply Gate (G) rule at the end
-    const gatePlayerId = players.find(p => upperPlayerStatus[p.id].includes("G"))?.id;
-    if (gatePlayerId) {
-        players.forEach(p => {
-            // Don't double the gate player's score, and don't double players with Scoot ('S')
-            if (p.id !== gatePlayerId && !upperPlayerStatus[p.id].includes("S")) {
-                scores[p.id] *= 2;
-            }
-        });
-    }
-
-    // Final check to ensure total is zero for winner rounds
-    if (winnerId) {
-        const total = Object.values(scores).reduce((acc, score) => acc + score, 0);
-        if (total !== 0) {
-            // This is a failsafe. If something went wrong, the logic is flawed.
-            // For now, we can adjust the winner's score to enforce the zero-sum rule.
-            scores[winnerId] -= total;
-        }
-    }
-
 
     return scores;
 }
