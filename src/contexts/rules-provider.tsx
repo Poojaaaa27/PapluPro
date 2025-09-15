@@ -6,7 +6,7 @@ import type { GameRules } from "@/lib/types";
 import { useAuth } from "@/hooks/use-auth";
 
 const DEFAULT_RULES: GameRules = {
-  attaKasu: 10,
+  basePoints: 10,
   scoot: 10,
   midScoot: 20,
   full: 40,

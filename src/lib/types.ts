@@ -33,7 +33,7 @@ export interface GameSession {
 }
 
 export interface GameRules {
-  attaKasu: number;
+  basePoints: number;
   scoot: number;
   midScoot: number;
   full: number;

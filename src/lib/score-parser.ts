@@ -33,41 +33,31 @@ function parsePlayerStatus(rawInput: string): ParsedStatus {
 
     const upperInput = rawInput.toUpperCase();
     
-    // Split by '-' to handle pre- and post-dash parts separately
     const parts = upperInput.split('-');
     const preDashPart = parts[0] || "";
-    const postDashPart = parts.length > 1 ? parts.slice(1).join('-') : "";
     
-    // --- Check for flags in the entire string ---
+    // Check for flags in the entire string, as they can be anywhere.
+    if (upperInput.includes("3C")) status.is3C = true;
     if (upperInput.includes("3P")) status.papluCount = 3;
     else if (upperInput.includes("2P")) status.papluCount = 2;
     else if (upperInput.includes("1P")) status.papluCount = 1;
 
-    if (upperInput.includes("3C")) status.is3C = true;
-    if (upperInput.includes("G")) status.isGate = true;
-    if (upperInput.includes("D")) status.isWinner = true;
-    
-    // MS can be a standalone code or part of a larger string
     if (upperInput.includes("MS")) status.isMidScoot = true;
-
-    // --- Check for winner-pot specific flags from the part after dash ---
-    // Or if there is no dash, these can be standalone.
-    const potPart = postDashPart || preDashPart;
-
-    // A simple "S" after a dash or alone means scoot.
-    if (potPart === "S") status.isScoot = true;
-    if (potPart.includes("F")) status.isFull = true;
     
-    // --- Extract numeric points ---
-    // Points are usually after the dash, but can be standalone.
-    const pointMatch = (postDashPart || upperInput).match(/-?\d+/);
+    // Winner-specific flags
+    if (upperInput.includes("D")) status.isWinner = true;
+    if (upperInput.includes("G")) status.isGate = true;
+    
+    // Use pre-dash part for scoot/full determination if they are not with points.
+    if (preDashPart === "S") status.isScoot = true;
+    if (preDashPart === "F") status.isFull = true;
+
+    // Extract numeric points, which can be positive or negative
+    const pointMatch = upperInput.match(/-?\d+/);
     if (pointMatch) {
         status.points = parseInt(pointMatch[0], 10);
     }
     
-    // Mid Scoot (MS) implies a point value of 20 for the pot if the player is a loser.
-    // The parser just flags it; the calculation logic handles the point value.
-
     return status;
 }
 
@@ -98,15 +88,15 @@ export function calculateRoundScores(
 
     // --- Stage 1: Global Transactions (Before Winner Payout) ---
 
-    // Transaction 1.1: 3C (attaKasu) Payout
+    // Transaction 1.1: 3C (basePoints) Payout
     if (is3CardGame) {
         const threeCardPlayers = allPlayerFlags.filter(p => p.flags.is3C);
         threeCardPlayers.forEach(threeCardPlayer => {
-            const winnings = rules.attaKasu * (players.length - 1);
+            const winnings = rules.basePoints * (players.length - 1);
             scores[threeCardPlayer.playerId] += winnings;
             players.forEach(p => {
                 if (p.id !== threeCardPlayer.playerId) {
-                    scores[p.id] -= rules.attaKasu;
+                    scores[p.id] -= rules.basePoints;
                 }
             });
         });

@@ -21,7 +21,7 @@ export default function RulesPage() {
     };
 
     const ruleEntries: { key: keyof GameRules, label: string, description: string }[] = [
-        { key: "attaKasu", label: "Atta Kasu", description: "Points for Atta Kasu." },
+        { key: "basePoints", label: "Base Points", description: "Points for a 3-card combination (if active)." },
         { key: "scoot", label: "Scoot", description: "Points for a Scoot (Show)." },
         { key: "midScoot", label: "Mid Scoot", description: "Points for a Middle Scoot." },
         { key: "full", label: "Full", description: "Points for a Full hand." },
