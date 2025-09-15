@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -34,68 +35,111 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { GameSession } from "@/lib/types"
 import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react"
+import { useHistory } from "@/hooks/use-history";
 
-const columns: ColumnDef<GameSession>[] = [
-  {
-    accessorKey: "teamName",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Team Name
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      )
-    },
-    cell: ({ row }) => <div className="font-medium">{row.getValue("teamName")}</div>,
-  },
-  {
-    accessorKey: "location",
-    header: "Location",
-  },
-  {
-    accessorKey: "date",
-    header: "Date",
-     cell: ({ row }) => {
-      const date = new Date(row.getValue("date"))
-      const formatted = date.toLocaleDateString()
-      return <div>{formatted}</div>
-    },
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => {
-      const status = row.getValue("status") as string
-      const variant = status === "Completed" ? "default" : "secondary"
-      return <Badge variant={variant} className="capitalize">{status}</Badge>
-    },
-  },
-  {
-    id: "actions",
-    cell: ({ row }) => {
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem>View Game</DropdownMenuItem>
-            <DropdownMenuItem>Export CSV</DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )
-    },
-  },
-]
+const exportToCSV = (game: GameSession) => {
+  const headers = ['Round', ...game.players.map(p => p.name), 'Round Total'];
+  const rows = game.rounds.map(round => {
+    const roundTotal = Object.values(round.scores).reduce((sum, score) => sum + score, 0);
+    const hasScores = Object.values(round.scores).some(score => score !== 0);
+    const playerScores = game.players.map(p => hasScores ? (round.scores[p.id] || 0) : '');
+    return [round.id, ...playerScores, hasScores ? roundTotal : ''];
+  });
+
+  const totalScores = game.players.map(p => {
+      return game.rounds.reduce((total, round) => total + (round.scores[p.id] || 0), 0);
+  });
+  const grandTotal = totalScores.reduce((sum, score) => sum + score, 0);
+  const footer = ['Total', ...totalScores, grandTotal];
+
+  const csvContent = [
+    headers.join(','),
+    ...rows.map(row => row.join(',')),
+    footer.join(',')
+  ].join('\n');
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', `${game.teamName}_${game.date}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
 
 export function HistoryTable({ data }: { data: GameSession[] }) {
+  const { deleteGameSession } = useHistory();
+  
+  const columns: ColumnDef<GameSession>[] = [
+    {
+      accessorKey: "teamName",
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Team Name
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        )
+      },
+      cell: ({ row }) => <div className="font-medium">{row.getValue("teamName")}</div>,
+    },
+    {
+      accessorKey: "location",
+      header: "Location",
+    },
+    {
+      accessorKey: "date",
+      header: "Date",
+      cell: ({ row }) => {
+        const date = new Date(row.getValue("date"))
+        const formatted = date.toLocaleDateString()
+        return <div>{formatted}</div>
+      },
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => {
+        const status = row.getValue("status") as string
+        const variant = status === "Completed" ? "default" : "secondary"
+        return <Badge variant={variant} className="capitalize">{status}</Badge>
+      },
+    },
+    {
+      id: "actions",
+      cell: ({ row }) => {
+        const game = row.original
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link href={`/history/${game.id}`}>View Game</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportToCSV(game)}>Export CSV</DropdownMenuItem>
+              <DropdownMenuItem 
+                className="text-destructive"
+                onClick={() => deleteGameSession(game.id)}
+              >
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )
+      },
+    },
+  ]
+
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
@@ -210,8 +254,7 @@ export function HistoryTable({ data }: { data: GameSession[] }) {
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">
         <div className="flex-1 text-sm text-muted-foreground">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
+          {table.getFilteredRowModel().rows.length} row(s) shown.
         </div>
         <div className="space-x-2">
           <Button
