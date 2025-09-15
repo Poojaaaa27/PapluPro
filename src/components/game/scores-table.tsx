@@ -27,17 +27,6 @@ export function ScoresTable({ rounds, players, totalScores }: ScoresTableProps) 
     return Object.values(totalScores).reduce((sum, score) => sum + score, 0);
   };
 
-  const cumulativeScores: Record<string, number>[] = [];
-  const runningTotals: Record<string, number> = {};
-  players.forEach(p => (runningTotals[p.id] = 0));
-
-  rounds.forEach(round => {
-    players.forEach(player => {
-      runningTotals[player.id] += round.scores[player.id] || 0;
-    });
-    cumulativeScores.push({ ...runningTotals });
-  });
-
   return (
     <div className="rounded-md border">
       <Table>
@@ -53,29 +42,36 @@ export function ScoresTable({ rounds, players, totalScores }: ScoresTableProps) 
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rounds.map((round, roundIndex) => (
-            <TableRow key={round.id}>
-              <TableCell className="font-semibold text-center align-middle">{round.id}</TableCell>
-              {players.map(player => {
-                const cumulativeScore = cumulativeScores[roundIndex][player.id];
-                return (
-                  <TableCell key={player.id} className="text-center align-middle">
-                    <span
-                      className={cn(
-                        cumulativeScore > 0 && "text-green-600",
-                        cumulativeScore < 0 && "text-red-600"
+          {rounds.map((round) => {
+            const roundTotal = getRoundTotal(round);
+            const hasScores = Object.values(round.scores).some(score => score !== 0);
+
+            return (
+              <TableRow key={round.id}>
+                <TableCell className="font-semibold text-center align-middle">{round.id}</TableCell>
+                {players.map(player => {
+                  const roundScore = round.scores[player.id] || 0;
+                  return (
+                    <TableCell key={player.id} className="text-center align-middle">
+                      {hasScores && (
+                        <span
+                          className={cn(
+                            roundScore > 0 && "text-green-600",
+                            roundScore < 0 && "text-red-600"
+                          )}
+                        >
+                          {roundScore}
+                        </span>
                       )}
-                    >
-                      {cumulativeScore}
-                    </span>
-                  </TableCell>
-                );
-              })}
-              <TableCell className="font-semibold text-center align-middle text-muted-foreground">
-                {getRoundTotal(round)}
-              </TableCell>
-            </TableRow>
-          ))}
+                    </TableCell>
+                  );
+                })}
+                <TableCell className="font-semibold text-center align-middle text-muted-foreground">
+                  {hasScores ? roundTotal : ''}
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
         <TableFooter>
           <TableRow className="bg-muted/50 font-bold">
