@@ -36,6 +36,7 @@ function parsePlayerStatus(code: string) {
 
 /**
  * Calculates the scores for all players for a single round based on their status codes.
+ * This version uses a multi-step transactional model.
  * @param playerStatus A record of player IDs to their status codes for the round.
  * @param players An array of all players in the game.
  * @param rules The current game rules.
@@ -58,72 +59,73 @@ export function calculateRoundScores(
         flags: parsePlayerStatus(playerStatus[p.id] || "")
     }));
 
-    const winnerData = allPlayerFlags.find(p => p.flags.isWinner);
-    
-    // If there's no winner, the round is incomplete or scored differently.
-    // For now, assume no points are exchanged if there is no "D".
-    if (!winnerData) {
-        return scores;
+    // Transaction 1: 3C (attaKasu) payout
+    if (is3CardGame) {
+        const threeCardPlayer = allPlayerFlags.find(p => p.flags.is3C);
+        if (threeCardPlayer) {
+            const threeCardWinnings = rules.attaKasu * (players.length - 1);
+            scores[threeCardPlayer.playerId] += threeCardWinnings;
+            players.forEach(p => {
+                if (p.id !== threeCardPlayer.playerId) {
+                    scores[p.id] -= rules.attaKasu;
+                }
+            });
+        }
     }
 
-    let winnerPot = 0;
-    const winnerId = winnerData.playerId;
-
+    // Transaction 2: Paplu Payouts
     allPlayerFlags.forEach(playerData => {
-        if (playerData.playerId === winnerId) return; // Skip the winner
+        let papluPayment = 0;
+        if (playerData.flags.papluCount === 1) papluPayment = rules.singlePaplu;
+        if (playerData.flags.papluCount === 2) papluPayment = rules.doublePaplu;
+        if (playerData.flags.papluCount === 3) papluPayment = rules.triplePaplu;
 
-        const loserId = playerData.playerId;
-        const loserFlags = playerData.flags;
-        let amountOwed = 0;
-
-        // Calculate amount owed based on loser's status
-        if (loserFlags.isScoot) {
-            amountOwed = rules.scoot;
-        } else if (loserFlags.isMidScoot) {
-            amountOwed = rules.midScoot;
-        } else if (loserFlags.isFull) {
-            amountOwed = rules.full;
-        } else {
-            amountOwed = Math.abs(loserFlags.points) * rules.perPoint;
+        if (papluPayment > 0) {
+            const papluWinnings = papluPayment * (players.length - 1);
+            scores[playerData.playerId] += papluWinnings;
+            players.forEach(p => {
+                if (p.id !== playerData.playerId) {
+                    scores[p.id] -= papluPayment;
+                }
+            });
         }
-
-        // Add Paplu points to the amount owed
-        if (loserFlags.papluCount === 1) amountOwed += rules.singlePaplu;
-        if (loserFlags.papluCount === 2) amountOwed += rules.doublePaplu;
-        if (loserFlags.papluCount === 3) amountOwed += rules.triplePaplu;
-
-        // Add 3C points (attaKasu) if the loser has 3C
-        if (is3CardGame && loserFlags.is3C) {
-             amountOwed += rules.attaKasu;
-        }
-
-        // Apply Gate from winner (doubling), except for scoot/mid-scoot
-        if (winnerData.flags.isGate && !loserFlags.isScoot && !loserFlags.isMidScoot) {
-            
-            // We need to separate the base points from the paplu/3c points if they are not doubled
-            let baseAmount = 0;
-             if (loserFlags.isFull) {
-                baseAmount = rules.full;
-            } else {
-                baseAmount = Math.abs(loserFlags.points) * rules.perPoint;
-            }
-
-            let specialAmount = amountOwed - baseAmount;
-            amountOwed = (baseAmount * 2) + specialAmount;
-        }
-        
-        scores[loserId] -= amountOwed;
-        winnerPot += amountOwed;
     });
 
-    // Handle 3C transaction separately if the WINNER has 3C
-    if(is3CardGame && winnerData.flags.is3C) {
-        const threeCardWinnings = rules.attaKasu * (players.length -1);
-        winnerPot += threeCardWinnings;
+    // Transaction 3: Main Round Winner Payout
+    const winnerData = allPlayerFlags.find(p => p.flags.isWinner);
+    if (winnerData) {
+        let winnerPot = 0;
+        const winnerId = winnerData.playerId;
+
+        allPlayerFlags.forEach(playerData => {
+            if (playerData.playerId === winnerId) return; // Skip the winner
+
+            const loserId = playerData.playerId;
+            const loserFlags = playerData.flags;
+            let amountOwed = 0;
+
+            if (loserFlags.isScoot) {
+                amountOwed = rules.scoot;
+            } else if (loserFlags.isMidScoot) {
+                amountOwed = rules.midScoot;
+            } else if (loserFlags.isFull) {
+                amountOwed = rules.full;
+            } else {
+                // Normal points calculation
+                amountOwed = Math.abs(loserFlags.points) * rules.perPoint;
+            }
+
+            // Gate rule: double the amount if winner has G, except for S/MS
+            if (winnerData.flags.isGate && !loserFlags.isScoot && !loserFlags.isMidScoot) {
+                amountOwed *= 2;
+            }
+
+            scores[loserId] -= amountOwed;
+            winnerPot += amountOwed;
+        });
+
+        scores[winnerId] += winnerPot;
     }
-
-
-    scores[winnerId] += winnerPot;
     
     return scores;
 }
