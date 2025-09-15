@@ -1,79 +1,17 @@
 
-import type { Player, GameRules } from "./types";
+import type { Player, GameRules, PlayerRoundStatus } from "./types";
 
 /**
- * Parses a player's status code to extract distinct parts.
- * It separates global transaction flags (3C, Paplu) from winner-pot flags (S, MS, F, points).
- * The hyphen '-' is the key separator.
- * @param code The player's status code (e.g., "1P-25", "MS", "3C-D").
- * @returns An object containing the parsed information.
- */
-function parsePlayerStatus(code: string) {
-    const upperCode = code.toUpperCase().trim();
-    
-    // Default structure
-    const result = {
-        isWinner: upperCode.includes("D"),
-        isGate: upperCode.includes("G"),
-        // Global transactions
-        is3C: false,
-        papluCount: 0,
-        // Winner pot transactions
-        isScoot: false,
-        isMidScoot: false,
-        isFull: false,
-        points: 0,
-    };
-
-    // Use a regex to find parts before and after the first hyphen
-    const parts = upperCode.split('-');
-    const preHyphenPart = parts[0] || '';
-    const postHyphenPart = parts.length > 1 ? parts.slice(1).join('-') : '';
-    
-    // --- Process Pre-Hyphen Part (and the whole string) for global flags ---
-    const globalPart = preHyphenPart;
-    if (globalPart.includes("3C")) result.is3C = true;
-    if (globalPart.includes("1P")) result.papluCount = 1;
-    if (globalPart.includes("2P")) result.papluCount = 2;
-    if (globalPart.includes("3P")) result.papluCount = 3;
-
-
-    // --- Process Post-Hyphen Part (or the whole string if no hyphen) for winner pot ---
-    const potPart = postHyphenPart || preHyphenPart;
-
-    if (potPart.includes("S")) result.isScoot = true;
-    if (potPart.includes("MS")) result.isMidScoot = true;
-    if (potPart.includes("F")) result.isFull = true;
-    
-    // Extracts numeric value, ensuring it's not part of a paplu code unless separated
-    const numericMatch = potPart.replace(/\d+P/g, '').match(/-?\d+/);
-    if (numericMatch) {
-        result.points = parseInt(numericMatch[0], 10);
-    }
-    
-    // Handle cases where there is no hyphen, so flags might be for the pot
-    if (parts.length === 1) {
-        if(preHyphenPart.includes("S")) result.isScoot = true;
-        if(preHyphenPart.includes("MS")) result.isMidScoot = true;
-        if(preHyphenPart.includes("F")) result.isFull = true;
-    }
-
-
-    return result;
-}
-
-
-/**
- * Calculates the scores for all players for a single round based on their status codes.
+ * Calculates the scores for all players for a single round based on their structured status.
  * This version uses a multi-step transactional model.
- * @param playerStatus A record of player IDs to their status codes for the round.
+ * @param playerStatus A record of player IDs to their structured status for the round.
  * @param players An array of all players in the game.
  * @param rules The current game rules.
  * @param is3CardGame A boolean indicating if the 3-card winner rule is active.
  * @returns A record of player IDs to their calculated scores for the round.
  */
 export function calculateRoundScores(
-    playerStatus: Record<string, string>,
+    playerStatus: Record<string, PlayerRoundStatus>,
     players: Player[],
     rules: GameRules,
     is3CardGame: boolean
@@ -85,7 +23,7 @@ export function calculateRoundScores(
 
     const allPlayerFlags = players.map(p => ({
         playerId: p.id,
-        flags: parsePlayerStatus(playerStatus[p.id] || "")
+        flags: playerStatus[p.id] || { points: 0, isWinner: false, isScoot: false, isMidScoot: false, isFull: false, isGate: false, is3C: false, papluCount: 0, rawInput: "" }
     }));
 
     // Transaction 1: 3C (attaKasu) Payout - Global
@@ -158,4 +96,3 @@ export function calculateRoundScores(
     
     return scores;
 }
-
