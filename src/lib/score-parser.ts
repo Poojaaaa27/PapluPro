@@ -2,35 +2,58 @@
 import type { Player, GameRules } from "./types";
 
 /**
- * Parses a player's status code to extract distinct parts like paplu count, 
- * numeric value, and flags (3C, S, MS, F, D, G).
- * @param code The player's status code (e.g., "1P-25", "MS", "3C1P-D").
+ * Parses a player's status code to extract distinct parts.
+ * It separates global transaction flags (3C, Paplu) from winner-pot flags (S, MS, F, points).
+ * The hyphen '-' is the key separator.
+ * @param code The player's status code (e.g., "1P-25", "MS", "3C-D").
  * @returns An object containing the parsed information.
  */
 function parsePlayerStatus(code: string) {
     const upperCode = code.toUpperCase().trim();
-    const flags = {
-        is3C: upperCode.includes("3C"),
+    
+    // Default structure
+    const result = {
         isWinner: upperCode.includes("D"),
         isGate: upperCode.includes("G"),
-        isScoot: upperCode.includes("S"),
-        isMidScoot: upperCode.includes("MS"),
-        isFull: upperCode.includes("F"),
+        // Global transactions (typically before '-')
+        is3C: false,
         papluCount: 0,
+        // Winner pot transactions (typically after '-')
+        isScoot: false,
+        isMidScoot: false,
+        isFull: false,
         points: 0,
     };
 
-    if (upperCode.includes("1P")) flags.papluCount = 1;
-    if (upperCode.includes("2P")) flags.papluCount = 2;
-    if (upperCode.includes("3P")) flags.papluCount = 3;
+    // Use a regex to find parts before and after the first hyphen
+    const parts = upperCode.split('-');
+    const preHyphenPart = parts[0] || '';
+    const postHyphenPart = parts.length > 1 ? parts.slice(1).join('-') : preHyphenPart;
+    const hasHyphen = parts.length > 1;
+
+    // --- Process Pre-Hyphen Part (or the whole string if no hyphen) for global flags ---
+    const partForGlobals = hasHyphen ? preHyphenPart : upperCode;
+
+    if (partForGlobals.includes("3C")) result.is3C = true;
+    if (partForGlobals.includes("1P")) result.papluCount = 1;
+    if (partForGlobals.includes("2P")) result.papluCount = 2;
+    if (partForGlobals.includes("3P")) result.papluCount = 3;
+
+
+    // --- Process Post-Hyphen Part (or the whole string if no hyphen) for winner pot ---
+    const partForPot = hasHyphen ? postHyphenPart : upperCode;
+
+    if (partForPot.includes("S")) result.isScoot = true;
+    if (partForPot.includes("MS")) result.isMidScoot = true;
+    if (partForPot.includes("F")) result.isFull = true;
     
-    // Extracts numeric value, including negative numbers, but not from paplu codes
-    const numericMatch = upperCode.replace(/\d+P/g, '').match(/-?\d+/);
+    // Extracts numeric value, but not from paplu codes
+    const numericMatch = partForPot.replace(/\d+P/g, '').match(/-?\d+/);
     if (numericMatch) {
-        flags.points = parseInt(numericMatch[0], 10);
+        result.points = parseInt(numericMatch[0], 10);
     }
-    
-    return flags;
+
+    return result;
 }
 
 
@@ -59,12 +82,12 @@ export function calculateRoundScores(
         flags: parsePlayerStatus(playerStatus[p.id] || "")
     }));
 
-    // Transaction 1: 3C (attaKasu) payout
+    // Transaction 1: 3C (attaKasu) Payout - Global
     if (is3CardGame) {
         const threeCardPlayer = allPlayerFlags.find(p => p.flags.is3C);
         if (threeCardPlayer) {
-            const threeCardWinnings = rules.attaKasu * (players.length - 1);
-            scores[threeCardPlayer.playerId] += threeCardWinnings;
+            const winnings = rules.attaKasu * (players.length - 1);
+            scores[threeCardPlayer.playerId] += winnings;
             players.forEach(p => {
                 if (p.id !== threeCardPlayer.playerId) {
                     scores[p.id] -= rules.attaKasu;
@@ -73,7 +96,7 @@ export function calculateRoundScores(
         }
     }
 
-    // Transaction 2: Paplu Payouts
+    // Transaction 2: Paplu Payouts - Global
     allPlayerFlags.forEach(playerData => {
         let papluPayment = 0;
         if (playerData.flags.papluCount === 1) papluPayment = rules.singlePaplu;
@@ -81,8 +104,8 @@ export function calculateRoundScores(
         if (playerData.flags.papluCount === 3) papluPayment = rules.triplePaplu;
 
         if (papluPayment > 0) {
-            const papluWinnings = papluPayment * (players.length - 1);
-            scores[playerData.playerId] += papluWinnings;
+            const winnings = papluPayment * (players.length - 1);
+            scores[playerData.playerId] += winnings;
             players.forEach(p => {
                 if (p.id !== playerData.playerId) {
                     scores[p.id] -= papluPayment;
