@@ -1,5 +1,5 @@
 
-"use client";
+"use-client";
 
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,7 +25,7 @@ export default function RulesPage() {
     };
 
     const ruleEntries: { key: keyof GameRules, label: string, description: string }[] = [
-        { key: "basePoints", label: "3-Card Hand (3C)", description: "Points collected by the 3-card winner from all other players." },
+        { key: "threeCardHand", label: "3-Card Hand (3C)", description: "Points collected by the 3-card winner from all other players." },
         { key: "scoot", label: "Scoot / Drop (S)", description: "Fixed points a player pays to the winner for an initial drop." },
         { key: "midScoot", label: "Mid Scoot (MS)", description: "Fixed points a player pays to the winner for a middle drop." },
         { key: "full", label: "Full Hand (F)", description: "Fixed points a player pays to the winner if they don't meet minimum conditions." },

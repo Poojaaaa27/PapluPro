@@ -33,7 +33,7 @@ export interface GameSession {
 }
 
 export interface GameRules {
-  basePoints: number;
+  threeCardHand: number;
   scoot: number;
   midScoot: number;
   full: number;

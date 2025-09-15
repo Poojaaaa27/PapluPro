@@ -45,10 +45,10 @@ function parsePlayerStatus(rawInput: string): ParsedStatus {
     if (upperInput.includes("S")) status.isScoot = true;
     if (upperInput.includes("F")) status.isFull = true;
 
-    // Extract numeric points, which can be positive or negative
-    const pointMatch = upperInput.match(/-?\d+/);
-    if (pointMatch) {
-        status.points = parseInt(pointMatch[0], 10);
+    // Extract LAST numeric value to correctly handle cases like "3C-10"
+    const matches = upperInput.match(/-?\d+/g);
+    if (matches) {
+        status.points = parseInt(matches[matches.length - 1], 10);
     }
     
     return status;
@@ -89,8 +89,8 @@ export function calculateRoundScores(
         threeCardPlayers.forEach(threeCardPlayer => {
             allPlayerFlags.forEach(otherPlayer => {
                 if (otherPlayer.playerId !== threeCardPlayer.playerId) {
-                    finalScores[threeCardPlayer.playerId] += rules.basePoints;
-                    finalScores[otherPlayer.playerId] -= rules.basePoints;
+                    finalScores[threeCardPlayer.playerId] += rules.threeCardHand;
+                    finalScores[otherPlayer.playerId] -= rules.threeCardHand;
                 }
             });
         });
