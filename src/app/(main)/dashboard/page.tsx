@@ -171,7 +171,7 @@ export default function DashboardPage() {
             <CardHeader>
                 <CardTitle className="font-headline">Review Past Games</CardTitle>
                 <CardDescription>Look back at your glorious victories and crushing defeats.</CardDescription>
-            </Header>
+            </CardHeader>
             <CardContent className="flex-grow flex items-center justify-center">
                  <History className="w-24 h-24 text-muted" />
             </CardContent>
