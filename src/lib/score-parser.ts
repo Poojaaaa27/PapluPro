@@ -33,9 +33,6 @@ function parsePlayerStatus(rawInput: string): ParsedStatus {
 
     const upperInput = rawInput.toUpperCase();
     
-    const parts = upperInput.split('-');
-    const preDashPart = parts[0] || "";
-    
     // Check for flags in the entire string, as they can be anywhere.
     if (upperInput.includes("3C")) status.is3C = true;
     if (upperInput.includes("3P")) status.papluCount = 3;
@@ -43,14 +40,10 @@ function parsePlayerStatus(rawInput: string): ParsedStatus {
     else if (upperInput.includes("1P")) status.papluCount = 1;
 
     if (upperInput.includes("MS")) status.isMidScoot = true;
-    
-    // Winner-specific flags
     if (upperInput.includes("D")) status.isWinner = true;
     if (upperInput.includes("G")) status.isGate = true;
-    
-    // Use pre-dash part for scoot/full determination if they are not with points.
-    if (preDashPart === "S") status.isScoot = true;
-    if (preDashPart === "F") status.isFull = true;
+    if (upperInput.includes("S")) status.isScoot = true;
+    if (upperInput.includes("F")) status.isFull = true;
 
     // Extract numeric points, which can be positive or negative
     const pointMatch = upperInput.match(/-?\d+/);
