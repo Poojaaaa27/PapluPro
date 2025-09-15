@@ -39,12 +39,14 @@ function parsePlayerStatus(code: string) {
  * @param playerStatus A record of player IDs to their status codes for the round.
  * @param players An array of all players in the game.
  * @param rules The current game rules.
+ * @param is3CardGame A boolean indicating if the 3-card winner rule is active.
  * @returns A record of player IDs to their calculated scores for the round.
  */
 export function calculateRoundScores(
     playerStatus: Record<string, string>,
     players: Player[],
     rules: GameRules,
+    is3CardGame: boolean
 ): Record<string, number> {
     const scores: Record<string, number> = {};
     players.forEach(p => scores[p.id] = 0);
@@ -63,7 +65,7 @@ export function calculateRoundScores(
     });
 
     // === Transaction 1: 3-Card Winner ===
-    if (threeCardPlayerId) {
+    if (is3CardGame && threeCardPlayerId) {
         const amount = rules.attaKasu;
         scores[threeCardPlayerId] += amount * (numPlayers - 1);
         players.forEach(p => {
@@ -112,20 +114,17 @@ export function calculateRoundScores(
                 amountOwed = Math.abs(loserFlags.points) * rules.perPoint;
             }
 
-            // Apply Gate from winner
+            // Apply Gate from winner (doubling)
             if (winnerFlags.isGate && !loserFlags.isScoot && !loserFlags.isMidScoot) {
                 amountOwed *= 2;
             }
-
+            
             scores[p.id] -= amountOwed;
             pot += amountOwed;
         });
 
         scores[winnerId] += pot;
-    } else {
-      // No winner scenario: players pay for their own status if not already handled
-      // This case might need more specific rules. For now, assuming D is mandatory for a pot.
     }
-
+    
     return scores;
 }
