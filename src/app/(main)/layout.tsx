@@ -7,6 +7,7 @@ import { Header } from '@/components/layout/header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { GameProvider } from '@/contexts/game-provider';
 import { RulesProvider } from '@/contexts/rules-provider';
+import { HistoryProvider } from '@/contexts/history-provider';
 
 export default function MainLayout({
   children,
@@ -46,12 +47,14 @@ export default function MainLayout({
   return (
     <RulesProvider>
       <GameProvider>
+        <HistoryProvider>
           <div className="relative flex min-h-screen w-full flex-col items-center">
-          <Header />
-          <main className="flex-1 w-full container max-w-screen-2xl">
-              {children}
-          </main>
+            <Header />
+            <main className="flex-1 w-full container max-w-screen-2xl">
+                {children}
+            </main>
           </div>
+        </HistoryProvider>
       </GameProvider>
     </RulesProvider>
   );
