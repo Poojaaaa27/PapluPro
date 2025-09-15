@@ -19,14 +19,24 @@ interface ScoresTableProps {
 }
 
 export function ScoresTable({ rounds, players, totalScores }: ScoresTableProps) {
-
   const getRoundTotal = (round: GameRound) => {
     return Object.values(round.scores).reduce((sum, score) => sum + score, 0);
-  }
+  };
 
   const getTotalOfTotals = () => {
     return Object.values(totalScores).reduce((sum, score) => sum + score, 0);
-  }
+  };
+
+  const cumulativeScores: Record<string, number>[] = [];
+  const runningTotals: Record<string, number> = {};
+  players.forEach(p => (runningTotals[p.id] = 0));
+
+  rounds.forEach(round => {
+    players.forEach(player => {
+      runningTotals[player.id] += round.scores[player.id] || 0;
+    });
+    cumulativeScores.push({ ...runningTotals });
+  });
 
   return (
     <div className="rounded-md border">
@@ -34,7 +44,7 @@ export function ScoresTable({ rounds, players, totalScores }: ScoresTableProps) 
         <TableHeader>
           <TableRow className="bg-muted/50">
             <TableHead className="w-[80px] font-headline text-center">Round</TableHead>
-            {players.map((player) => (
+            {players.map(player => (
               <TableHead key={player.id} className="font-headline text-center">
                 {player.name}
               </TableHead>
@@ -43,38 +53,47 @@ export function ScoresTable({ rounds, players, totalScores }: ScoresTableProps) 
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rounds.map((round) => (
+          {rounds.map((round, roundIndex) => (
             <TableRow key={round.id}>
               <TableCell className="font-semibold text-center align-middle">{round.id}</TableCell>
-              {players.map((player) => (
-                <TableCell key={player.id} className="text-center align-middle">
-                   <span className={cn(
-                       round.scores[player.id] > 0 && "text-green-600",
-                       round.scores[player.id] < 0 && "text-red-600"
-                   )}>
-                    {round.scores[player.id] ?? '-'}
-                   </span>
-                </TableCell>
-              ))}
-              <TableCell className="font-semibold text-center align-middle text-muted-foreground">{getRoundTotal(round)}</TableCell>
+              {players.map(player => {
+                const cumulativeScore = cumulativeScores[roundIndex][player.id];
+                return (
+                  <TableCell key={player.id} className="text-center align-middle">
+                    <span
+                      className={cn(
+                        cumulativeScore > 0 && "text-green-600",
+                        cumulativeScore < 0 && "text-red-600"
+                      )}
+                    >
+                      {cumulativeScore}
+                    </span>
+                  </TableCell>
+                );
+              })}
+              <TableCell className="font-semibold text-center align-middle text-muted-foreground">
+                {getRoundTotal(round)}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
         <TableFooter>
-            <TableRow className="bg-muted/50 font-bold">
-                <TableHead className="text-center font-headline">Total</TableHead>
-                {players.map(player => (
-                    <TableHead key={player.id} className="text-center text-lg">
-                        <div className={cn(
-                            totalScores[player.id] > 0 && "text-green-600",
-                            totalScores[player.id] < 0 && "text-red-600"
-                        )}>
-                            {totalScores[player.id]}
-                        </div>
-                    </TableHead>
-                ))}
-                <TableHead className="text-center font-headline">{getTotalOfTotals()}</TableHead>
-            </TableRow>
+          <TableRow className="bg-muted/50 font-bold">
+            <TableHead className="text-center font-headline">Total</TableHead>
+            {players.map(player => (
+              <TableHead key={player.id} className="text-center text-lg">
+                <div
+                  className={cn(
+                    totalScores[player.id] > 0 && "text-green-600",
+                    totalScores[player.id] < 0 && "text-red-600"
+                  )}
+                >
+                  {totalScores[player.id]}
+                </div>
+              </TableHead>
+            ))}
+            <TableHead className="text-center font-headline">{getTotalOfTotals()}</TableHead>
+          </TableRow>
         </TableFooter>
       </Table>
     </div>
