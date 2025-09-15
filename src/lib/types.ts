@@ -1,3 +1,4 @@
+
 export type UserRole = "organizer" | "viewer";
 
 export interface User {
