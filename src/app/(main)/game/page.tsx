@@ -1,3 +1,4 @@
+
 "use client";
 
 import { RoundsTable } from "@/components/game/rounds-table";
@@ -15,7 +16,7 @@ export default function GamePage() {
   const { user } = useAuth();
   const { 
     players, 
-    setPlayers, 
+    updatePlayers, 
     rounds, 
     gameDetails, 
     setGameDetails, 
@@ -77,7 +78,7 @@ export default function GamePage() {
         <TabsContent value="setup" className="mt-6">
           <GameSetupForm 
             players={players} 
-            setPlayers={setPlayers}
+            setPlayers={updatePlayers}
             gameDetails={gameDetails}
             setGameDetails={setGameDetails}
             isOrganizer={isOrganizer}

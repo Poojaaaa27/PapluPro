@@ -16,7 +16,7 @@ import { Switch } from '../ui/switch';
 
 interface GameSetupFormProps {
     players: Player[];
-    setPlayers: React.Dispatch<React.SetStateAction<Player[]>>;
+    setPlayers: (newPlayers: Player[]) => void;
     gameDetails: GameDetails;
     setGameDetails: React.Dispatch<React.SetStateAction<GameDetails>>;
     isOrganizer: boolean;
@@ -37,7 +37,8 @@ export function GameSetupForm({ players, setPlayers, gameDetails, setGameDetails
   };
 
   const removePlayer = (id: string) => {
-    setPlayers(players.filter(player => player.id !== id));
+    const updatedPlayers = players.filter(player => player.id !== id);
+    setPlayers(updatedPlayers);
   };
   
   if (!isOrganizer) {

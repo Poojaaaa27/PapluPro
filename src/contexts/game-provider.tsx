@@ -26,7 +26,7 @@ const mockRounds: GameRound[] = Array.from({ length: 15 }, (_, i) => ({
 
 interface GameContextType {
   players: Player[];
-  setPlayers: React.Dispatch<React.SetStateAction<Player[]>>;
+  updatePlayers: (newPlayers: Player[]) => void;
   rounds: GameRound[];
   setRounds: React.Dispatch<React.SetStateAction<GameRound[]>>;
   gameDetails: GameDetails;
@@ -53,6 +53,19 @@ export function GameProvider({ children }: { children: ReactNode }) {
     throw new Error("GameProvider must be used within a RulesProvider");
   }
   const { rules } = rulesContext;
+
+  const recalculateAllRounds = useCallback((currentRounds: GameRound[], newPlayers: Player[]) => {
+    return currentRounds.map(r => {
+      const newScores = calculateRoundScores(r.playerStatus, newPlayers, rules, gameDetails.is3CardGame);
+      return { ...r, scores: newScores };
+    });
+  }, [rules, gameDetails.is3CardGame]);
+
+  const updatePlayers = useCallback((newPlayers: Player[]) => {
+    setPlayers(newPlayers);
+    setRounds(prevRounds => recalculateAllRounds(prevRounds, newPlayers));
+  }, [recalculateAllRounds]);
+
 
   const handleStatusChange = useCallback((roundId: number, playerId: string, rawInput: string) => {
     setRounds(prevRounds => {
@@ -90,7 +103,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const value = {
     players,
-    setPlayers,
+    updatePlayers,
     rounds,
     setRounds,
     gameDetails,
