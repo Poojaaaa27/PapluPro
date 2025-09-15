@@ -1,5 +1,5 @@
 
-import type { Player, GameRules, GameDetails } from "./types";
+import type { Player, GameRules } from "./types";
 
 /**
  * Parses a player's status code to extract distinct parts like paplu count, 
@@ -7,7 +7,7 @@ import type { Player, GameRules, GameDetails } from "./types";
  * @param code The player's status code (e.g., "1P-25", "MS", "3C2P-F-D").
  * @returns An object containing the parsed information.
  */
-function getPlayerFlags(code: string) {
+function parsePlayerStatus(code: string) {
     const upperCode = code.toUpperCase().trim();
     const flags = {
         is3C: upperCode.includes("3C"),
@@ -24,12 +24,12 @@ function getPlayerFlags(code: string) {
     if (upperCode.includes("2P")) flags.papluCount = 2;
     if (upperCode.includes("3P")) flags.papluCount = 3;
 
-    // Extracts numeric value, including negative numbers
-    const numericMatch = upperCode.match(/-?\d+/);
+    // Extracts numeric value, including negative numbers, but not from paplu codes
+    const numericMatch = upperCode.replace(/\d+P/g, '').match(/-?\d+/);
     if (numericMatch) {
         flags.points = parseInt(numericMatch[0], 10);
     }
-
+    
     return flags;
 }
 
@@ -39,108 +39,93 @@ function getPlayerFlags(code: string) {
  * @param playerStatus A record of player IDs to their status codes for the round.
  * @param players An array of all players in the game.
  * @param rules The current game rules.
- * @param is3CardGame Whether the 3-card rule is active for this game.
  * @returns A record of player IDs to their calculated scores for the round.
  */
 export function calculateRoundScores(
     playerStatus: Record<string, string>,
     players: Player[],
     rules: GameRules,
-    is3CardGame: boolean,
 ): Record<string, number> {
     const scores: Record<string, number> = {};
     players.forEach(p => scores[p.id] = 0);
     const numPlayers = players.length;
-    if (numPlayers === 0) return scores;
+    if (numPlayers < 2) return scores;
 
-    // === Step 1: Identify Winner and Losers ===
-    const allPlayerFlags: Record<string, ReturnType<typeof getPlayerFlags>> = {};
+    const allPlayerFlags: Record<string, ReturnType<typeof parsePlayerStatus>> = {};
     let winnerId: string | null = null;
+    let threeCardPlayerId: string | null = null;
+    
     players.forEach(p => {
-        const flags = getPlayerFlags(playerStatus[p.id] || "");
+        const flags = parsePlayerStatus(playerStatus[p.id] || "");
         allPlayerFlags[p.id] = flags;
-        if (flags.isWinner) {
-            winnerId = p.id;
-        }
+        if (flags.isWinner) winnerId = p.id;
+        if (flags.is3C) threeCardPlayerId = p.id;
     });
 
-    // === Step 2: Handle "No Winner" Scenario ===
-    if (!winnerId) {
-        // In a no-winner round, each player's hand has a value they lose.
+    // === Transaction 1: 3-Card Winner ===
+    if (threeCardPlayerId) {
+        const amount = rules.attaKasu;
+        scores[threeCardPlayerId] += amount * (numPlayers - 1);
         players.forEach(p => {
-            const flags = allPlayerFlags[p.id];
-            let handValue = 0;
-
-            if (flags.isScoot) handValue += rules.scoot;
-            else if (flags.isMidScoot) handValue += rules.midScoot;
-            else if (flags.isFull) handValue += rules.full;
-            else handValue += Math.abs(flags.points);
-
-            if (flags.papluCount === 1) handValue += rules.singlePaplu;
-            if (flags.papluCount === 2) handValue += rules.doublePaplu;
-            if (flags.papluCount === 3) handValue += rules.triplePaplu;
-
-            // In a no-winner scenario, attaKasu might not apply or applies differently.
-            // Assuming for now that if 3C is present, it's just a hand value.
-            if (is3CardGame && flags.is3C) {
-                // This logic might need refinement based on specific rules for 3C in no-winner rounds.
-                // For now, treating it as a payment to the pot (which doesn't exist here).
+            if (p.id !== threeCardPlayerId) {
+                scores[p.id] -= amount;
             }
-
-            scores[p.id] = -handValue;
         });
-        return scores;
     }
 
-    // === Step 3: Handle "Winner" Scenario ===
-    const winnerFlags = allPlayerFlags[winnerId];
-    let totalPot = 0;
-
+    // === Transaction 2: Paplu Payments ===
     players.forEach(p => {
-        if (p.id === winnerId) return; // Skip the winner
+        const flags = allPlayerFlags[p.id];
+        let papluAmount = 0;
+        if (flags.papluCount === 1) papluAmount = rules.singlePaplu;
+        if (flags.papluCount === 2) papluAmount = rules.doublePaplu;
+        if (flags.papluCount === 3) papluAmount = rules.triplePaplu;
 
-        const loserFlags = allPlayerFlags[p.id];
-        let amountOwed = 0;
-
-        // Determine base amount owed from game status
-        if (loserFlags.isScoot) {
-            amountOwed = rules.scoot;
-        } else if (loserFlags.isMidScoot) {
-            amountOwed = rules.midScoot;
-        } else if (loserFlags.isFull) {
-            amountOwed = rules.full;
-        } else {
-            amountOwed = Math.abs(loserFlags.points);
+        if (papluAmount > 0) {
+            scores[p.id] += papluAmount * (numPlayers - 1);
+            players.forEach(otherPlayer => {
+                if (otherPlayer.id !== p.id) {
+                    scores[otherPlayer.id] -= papluAmount;
+                }
+            });
         }
-
-        // Add Paplu values for the loser
-        if (loserFlags.papluCount === 1) amountOwed += rules.singlePaplu;
-        if (loserFlags.papluCount === 2) amountOwed += rules.doublePaplu;
-        if (loserFlags.papluCount === 3) amountOwed += rules.triplePaplu;
-        
-        // Add attaKasu if the loser had 3C
-        if (is3CardGame && loserFlags.is3C) {
-            amountOwed += rules.attaKasu;
-        }
-
-        // Apply Gate from winner (doubles the calculated amount)
-        if (winnerFlags.isGate && !loserFlags.isScoot && !loserFlags.isMidScoot) {
-            amountOwed *= 2;
-        }
-
-        scores[p.id] = -amountOwed;
-        totalPot += amountOwed;
     });
 
-    // The winner also has their own paplu/3c values which they "win" from the pot
-    let winnerSelfValue = 0;
-    if (winnerFlags.papluCount === 1) winnerSelfValue += rules.singlePaplu;
-    if (winnerFlags.papluCount === 2) winnerSelfValue += rules.doublePaplu;
-    if (winnerFlags.papluCount === 3) winnerSelfValue += rules.triplePaplu;
-    if (is3CardGame && winnerFlags.is3C) winnerSelfValue += rules.attaKasu;
-    
-    // The winner's score is the total pot from losers.
-    scores[winnerId] = totalPot;
+    // === Transaction 3: Round Winner Payments ===
+    if (winnerId) {
+        const winnerFlags = allPlayerFlags[winnerId];
+        let pot = 0;
+
+        players.forEach(p => {
+            if (p.id === winnerId) return;
+
+            const loserFlags = allPlayerFlags[p.id];
+            let amountOwed = 0;
+
+            if (loserFlags.isScoot) {
+                amountOwed = rules.scoot;
+            } else if (loserFlags.isMidScoot) {
+                amountOwed = rules.midScoot;
+            } else if (loserFlags.isFull) {
+                amountOwed = rules.full;
+            } else {
+                amountOwed = Math.abs(loserFlags.points) * rules.perPoint;
+            }
+
+            // Apply Gate from winner
+            if (winnerFlags.isGate && !loserFlags.isScoot && !loserFlags.isMidScoot) {
+                amountOwed *= 2;
+            }
+
+            scores[p.id] -= amountOwed;
+            pot += amountOwed;
+        });
+
+        scores[winnerId] += pot;
+    } else {
+      // No winner scenario: players pay for their own status if not already handled
+      // This case might need more specific rules. For now, assuming D is mandatory for a pot.
+    }
 
     return scores;
 }
