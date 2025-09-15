@@ -1,14 +1,18 @@
 
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRules } from "@/hooks/use-rules";
 import type { GameRules } from "@/lib/types";
+import { Button } from "@/components/ui/button";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function RulesPage() {
     const { rules, setRules, isOrganizer } = useRules();
+    const [showRules, setShowRules] = useState(false);
 
     const handleRuleChange = (key: keyof GameRules, value: string) => {
         const numericValue = parseInt(value, 10);
@@ -84,28 +88,37 @@ export default function RulesPage() {
                     {isOrganizer ? "Customize the point values for your game." : "View the current point values for the game."}
                 </p>
             </div>
+
+            <div className="flex justify-start mb-4">
+                <Button onClick={() => setShowRules(!showRules)} variant="outline">
+                    {showRules ? <EyeOff className="mr-2" /> : <Eye className="mr-2" />}
+                    {showRules ? 'Hide Full Rules' : 'View Full Rules'}
+                </Button>
+            </div>
             
-            <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline">Game Inputs & Rules</CardTitle>
-                    <CardDescription>
-                        A reference guide for the input codes used during score entry and how scores are calculated.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-4">
-                        {gameRuleExplanations.map((rule) => (
-                             <div key={rule.code} className="flex items-start gap-4">
-                                <code className="font-mono text-base font-bold bg-muted text-primary rounded-md px-2 py-1 mt-1 shrink-0">{rule.code}</code>
-                                <div className="flex-1">
-                                    <p className="font-bold font-headline">{rule.meaning}</p>
-                                    <p className="text-sm text-muted-foreground">{rule.description}</p>
+            {showRules && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline">Game Inputs & Rules</CardTitle>
+                        <CardDescription>
+                            A reference guide for the input codes used during score entry and how scores are calculated.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            {gameRuleExplanations.map((rule) => (
+                                <div key={rule.code} className="flex items-start gap-4">
+                                    <code className="font-mono text-base font-bold bg-muted text-primary rounded-md px-2 py-1 mt-1 shrink-0">{rule.code}</code>
+                                    <div className="flex-1">
+                                        <p className="font-bold font-headline">{rule.meaning}</p>
+                                        <p className="text-sm text-muted-foreground">{rule.description}</p>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
-                    </div>
-                </CardContent>
-            </Card>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             <Card>
                 <CardHeader>
