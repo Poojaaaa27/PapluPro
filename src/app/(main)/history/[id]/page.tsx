@@ -4,13 +4,15 @@
 import { useHistory } from "@/hooks/use-history";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
-import type { GameSession } from "@/lib/types";
+import type { GameSession, Player } from "@/lib/types";
 import { ScoresTable } from "@/components/game/scores-table";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Crown } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RoundsTable } from "@/components/game/rounds-table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
 
 export default function GameHistoryDetailPage() {
     const router = useRouter();
@@ -45,6 +47,26 @@ export default function GameHistoryDetailPage() {
         });
         return totals;
     }, [gameSession]);
+
+    const sortedPlayers = useMemo(() => {
+        if (!gameSession) return [];
+        return gameSession.players
+            .map(player => ({
+                ...player,
+                score: totalScores[player.id] || 0,
+            }))
+            .sort((a, b) => b.score - a.score);
+    }, [gameSession, totalScores]);
+
+    const winningScore = sortedPlayers.length > 0 ? sortedPlayers[0].score : 0;
+    
+    const getInitials = (name: string) => {
+        const names = name.split(' ');
+        if (names.length > 1) {
+            return names[0][0] + names[names.length - 1][0];
+        }
+        return name.substring(0, 2);
+    }
 
     if (historyLoading || !gameSession) {
         return (
@@ -82,6 +104,37 @@ export default function GameHistoryDetailPage() {
                     </div>
                 </div>
             </div>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline">Final Standings</CardTitle>
+                    <CardDescription>The leaderboard for this game session.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-4">
+                        {sortedPlayers.map((player, index) => {
+                            const isWinner = player.score === winningScore && winningScore > 0;
+                            return (
+                                <div key={player.id} className={cn("flex items-center justify-between p-3 rounded-lg", isWinner ? "bg-amber-100 dark:bg-amber-900/30" : "bg-muted/50")}>
+                                    <div className="flex items-center gap-4">
+                                        <Avatar className="h-10 w-10">
+                                            <AvatarImage src={`https://avatar.vercel.sh/${player.name}.png`} alt={player.name} />
+                                            <AvatarFallback>{getInitials(player.name)}</AvatarFallback>
+                                        </Avatar>
+                                        <div>
+                                            <p className="font-bold font-headline text-lg">{player.name}</p>
+                                            {isWinner && <p className="text-sm text-amber-600 dark:text-amber-400 flex items-center gap-1"><Crown className="w-4 h-4" /> Winner</p>}
+                                        </div>
+                                    </div>
+                                    <div className={cn("text-2xl font-bold", player.score > 0 && "text-green-600", player.score < 0 && "text-red-600")}>
+                                        {player.score}
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
+                </CardContent>
+            </Card>
 
             <Card>
                 <CardHeader>
