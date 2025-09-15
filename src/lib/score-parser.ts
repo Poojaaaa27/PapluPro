@@ -86,16 +86,16 @@ export function calculateRoundScores(
         flags: parsePlayerStatus(playerStatus[p.id] || "")
     }));
 
-    // --- Stage 1: Global Transactions (Before Winner Payout) ---
+    // --- Stage 1: Bonus Transactions (Before Winner Payout) ---
+    // These transactions happen between the holder and all other players.
 
     // Transaction 1.1: 3C (basePoints) Payout
     if (is3CardGame) {
         const threeCardPlayers = allPlayerFlags.filter(p => p.flags.is3C);
         threeCardPlayers.forEach(threeCardPlayer => {
-            const winnings = rules.basePoints * (players.length - 1);
-            scores[threeCardPlayer.playerId] += winnings;
             players.forEach(p => {
                 if (p.id !== threeCardPlayer.playerId) {
+                    scores[threeCardPlayer.playerId] += rules.basePoints;
                     scores[p.id] -= rules.basePoints;
                 }
             });
@@ -110,10 +110,9 @@ export function calculateRoundScores(
         else if (playerData.flags.papluCount === 3) papluPayment = rules.triplePaplu;
 
         if (papluPayment > 0) {
-            const winnings = papluPayment * (players.length - 1);
-            scores[playerData.playerId] += winnings;
             players.forEach(p => {
                 if (p.id !== playerData.playerId) {
+                    scores[playerData.playerId] += papluPayment;
                     scores[p.id] -= papluPayment;
                 }
             });
@@ -121,14 +120,15 @@ export function calculateRoundScores(
     });
 
     // --- Stage 2: Main Round Winner Payout ---
+    // The winner collects from all losing players.
 
     const winnerData = allPlayerFlags.find(p => p.flags.isWinner);
     if (winnerData) {
-        let winnerPot = 0;
         const winnerId = winnerData.playerId;
 
         allPlayerFlags.forEach(playerData => {
-            if (playerData.playerId === winnerId) return; // Skip the winner
+            // A player doesn't pay themselves.
+            if (playerData.playerId === winnerId) return;
 
             const loserId = playerData.playerId;
             const loserFlags = playerData.flags;
@@ -141,19 +141,19 @@ export function calculateRoundScores(
             } else if (loserFlags.isFull) {
                 amountOwed = rules.full;
             } else {
+                // For regular players, points are based on their hand value.
                 amountOwed = Math.abs(loserFlags.points) * rules.perPoint;
             }
 
-            // Gate rule: double the amount owed by non-scoot/mid-scoot players
+            // The "Gate" rule doubles the amount owed by non-scoot/mid-scoot players.
             if (winnerData.flags.isGate && !loserFlags.isScoot && !loserFlags.isMidScoot) {
                 amountOwed *= 2;
             }
-
+            
+            // The loser pays the winner.
             scores[loserId] -= amountOwed;
-            winnerPot += amountOwed;
+            scores[winnerId] += amountOwed;
         });
-
-        scores[winnerId] += winnerPot;
     }
 
     return scores;
