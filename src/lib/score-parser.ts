@@ -33,9 +33,10 @@ function parsePlayerStatus(code: string) {
     return flags;
 }
 
+
 /**
  * Calculates the scores for all players for a single round based on their status codes
- * following a transactional logic.
+ * following a multi-step transactional logic.
  * @param playerStatus A record of player IDs to their status codes for the round.
  * @param players An array of all players in the game.
  * @param rules The current game rules.
@@ -53,40 +54,55 @@ export function calculateRoundScores(
     const numPlayers = players.length;
     if (numPlayers < 2) return scores;
 
-    const allPlayerFlags: Record<string, ReturnType<typeof parsePlayerStatus>> = {};
-    let winnerId: string | null = null;
-    let threeCardWinnerId: string | null = null;
+    const allPlayerFlags = players.map(p => ({
+        playerId: p.id,
+        flags: parsePlayerStatus(playerStatus[p.id] || "")
+    }));
     
-    players.forEach(p => {
-        const flags = parsePlayerStatus(playerStatus[p.id] || "");
-        allPlayerFlags[p.id] = flags;
-        if (flags.isWinner) winnerId = p.id;
-        if (flags.is3C) threeCardWinnerId = p.id;
-    });
-
     // Transaction 1: 3-Card Winner Payout (if applicable)
-    if (is3CardGame && threeCardWinnerId) {
-        const amount = rules.attaKasu;
-        scores[threeCardWinnerId] += amount * (numPlayers - 1);
-        players.forEach(p => {
-            if (p.id !== threeCardWinnerId) {
-                scores[p.id] -= amount;
-            }
-        });
+    if (is3CardGame) {
+        const threeCardWinner = allPlayerFlags.find(p => p.flags.is3C);
+        if (threeCardWinner) {
+            const amount = rules.attaKasu;
+            scores[threeCardWinner.playerId] += amount * (numPlayers - 1);
+            players.forEach(p => {
+                if (p.id !== threeCardWinner.playerId) {
+                    scores[p.id] -= amount;
+                }
+            });
+        }
     }
 
-    // Transaction 2: Round Winner takes the pot
-    if (winnerId) {
-        const winnerFlags = allPlayerFlags[winnerId];
+    // Transaction 2: Paplu Payouts (separate exchanges)
+    allPlayerFlags.forEach(playerWithFlags => {
+        let papluAmount = 0;
+        if (playerWithFlags.flags.papluCount === 1) papluAmount = rules.singlePaplu;
+        if (playerWithFlags.flags.papluCount === 2) papluAmount = rules.doublePaplu;
+        if (playerWithFlags.flags.papluCount === 3) papluAmount = rules.triplePaplu;
+
+        if (papluAmount > 0) {
+            scores[playerWithFlags.playerId] += papluAmount * (numPlayers - 1);
+            players.forEach(p => {
+                if (p.id !== playerWithFlags.playerId) {
+                    scores[p.id] -= papluAmount;
+                }
+            });
+        }
+    });
+
+    // Transaction 3: Round Winner takes the pot
+    const winnerData = allPlayerFlags.find(p => p.flags.isWinner);
+    if (winnerData) {
+        const winnerId = winnerData.playerId;
+        const winnerFlags = winnerData.flags;
         let pot = 0;
 
-        players.forEach(p => {
-            if (p.id === winnerId) return; // Skip the winner
+        allPlayerFlags.forEach(playerData => {
+            if (playerData.playerId === winnerId) return; // Skip the winner
 
-            const loserFlags = allPlayerFlags[p.id];
+            const loserFlags = playerData.flags;
             let amountOwed = 0;
 
-            // Determine base amount owed from status
             if (loserFlags.isScoot) {
                 amountOwed = rules.scoot;
             } else if (loserFlags.isMidScoot) {
@@ -96,18 +112,13 @@ export function calculateRoundScores(
             } else {
                 amountOwed = Math.abs(loserFlags.points) * rules.perPoint;
             }
-
-            // Add paplu value to the amount owed to the winner
-            if (loserFlags.papluCount === 1) amountOwed += rules.singlePaplu;
-            if (loserFlags.papluCount === 2) amountOwed += rules.doublePaplu;
-            if (loserFlags.papluCount === 3) amountOwed += rules.triplePaplu;
-
+            
             // Apply Gate from winner (doubling), except for scoot/mid-scoot
             if (winnerFlags.isGate && !loserFlags.isScoot && !loserFlags.isMidScoot) {
                 amountOwed *= 2;
             }
             
-            scores[p.id] -= amountOwed;
+            scores[playerData.playerId] -= amountOwed;
             pot += amountOwed;
         });
 
