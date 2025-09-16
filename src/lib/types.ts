@@ -11,13 +11,20 @@ export interface Player {
   name: string;
 }
 
-export interface PlayerRoundStatus {
-  rawInput: string;
+export type RoundOutcome = "Winner" | "Playing" | "Full" | "Scoot" | "MidScoot";
+export type PapluCount = 0 | 1 | 2 | 3;
+
+export interface PlayerStatus {
+  is3C: boolean;
+  papluCount: PapluCount;
+  outcome: RoundOutcome;
+  points: number;
+  isGate: boolean;
 }
 
 export interface GameRound {
   id: number;
-  playerStatus: Record<string, string>; // Player ID -> raw input string
+  playerStatus: Record<string, PlayerStatus>; // Player ID -> structured status
   scores: Record<string, number>; // Player ID -> score
 }
 

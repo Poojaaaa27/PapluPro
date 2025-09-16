@@ -26,7 +26,15 @@ export default function GameHistoryDetailPage() {
         if (!historyLoading && gameId) {
             const session = gameHistory.find(g => g.id === gameId);
             if (session) {
-                setGameSession(session);
+                // Temporary migration for old data format
+                const migratedSession = {
+                    ...session,
+                    rounds: session.rounds.map(r => ({
+                        ...r,
+                        playerStatus: r.playerStatus || {}
+                    }))
+                };
+                setGameSession(migratedSession);
             } else {
                 // Optional: redirect if game not found
                 // router.push('/history');

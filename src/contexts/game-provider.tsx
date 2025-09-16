@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useState, useMemo, useCallback, ReactNode, useContext } from "react";
-import type { Player, GameRound, GameDetails } from "@/lib/types";
+import type { Player, GameRound, GameDetails, PlayerStatus, PapluCount, RoundOutcome } from "@/lib/types";
 import { calculateRoundScores } from "@/lib/score-parser";
 import { RulesContext } from "./rules-provider";
 import { format } from "date-fns";
@@ -14,13 +14,26 @@ const mockPlayers: Player[] = [
   { id: "3", name: "fo" },
 ];
 
+const defaultPlayerStatus: PlayerStatus = {
+  is3C: false,
+  papluCount: 0,
+  outcome: 'Playing',
+  points: 0,
+  isGate: false,
+};
+
+const getDefaultPlayerStatuses = (players: Player[]): Record<string, PlayerStatus> => {
+    const statuses: Record<string, PlayerStatus> = {};
+    players.forEach(p => {
+        statuses[p.id] = { ...defaultPlayerStatus };
+    });
+    return statuses;
+}
+
+
 const mockRounds: GameRound[] = Array.from({ length: 15 }, (_, i) => ({
   id: i + 1,
-  playerStatus: {
-    "1": "",
-    "2": "",
-    "3": "",
-  },
+  playerStatus: getDefaultPlayerStatuses(mockPlayers),
   scores: {},
 }));
 
@@ -31,7 +44,7 @@ interface GameContextType {
   setRounds: React.Dispatch<React.SetStateAction<GameRound[]>>;
   gameDetails: GameDetails;
   setGameDetails: React.Dispatch<React.SetStateAction<GameDetails>>;
-  handleStatusChange: (roundId: number, playerId: string, rawInput: string) => void;
+  handleStatusChange: (roundId: number, playerId: string, newStatus: PlayerStatus) => void;
   resetGame: () => void;
   totalScores: Record<string, number>;
 }
@@ -40,7 +53,15 @@ export const GameContext = createContext<GameContextType | undefined>(undefined)
 
 export function GameProvider({ children }: { children: ReactNode }) {
   const [players, setPlayers] = useState<Player[]>(mockPlayers);
-  const [rounds, setRounds] = useState<GameRound[]>(mockRounds);
+  
+  const [rounds, setRounds] = useState<GameRound[]>(() => 
+    Array.from({ length: 15 }, (_, i) => ({
+      id: i + 1,
+      playerStatus: getDefaultPlayerStatuses(players),
+      scores: {},
+    }))
+  );
+
   const [gameDetails, setGameDetails] = useState<GameDetails>({
     location: "Chennai",
     teamName: "Team 1",
@@ -56,8 +77,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const recalculateAllRounds = useCallback((currentRounds: GameRound[], newPlayers: Player[]) => {
     return currentRounds.map(r => {
-      const newScores = calculateRoundScores(r.playerStatus, newPlayers, rules, gameDetails.is3CardGame);
-      return { ...r, scores: newScores };
+      const newPlayerStatus: Record<string, PlayerStatus> = {};
+      newPlayers.forEach(p => {
+        newPlayerStatus[p.id] = r.playerStatus[p.id] || { ...defaultPlayerStatus };
+      });
+      const newScores = calculateRoundScores(newPlayerStatus, newPlayers, rules, gameDetails.is3CardGame);
+      return { ...r, playerStatus: newPlayerStatus, scores: newScores };
     });
   }, [rules, gameDetails.is3CardGame]);
 
@@ -67,11 +92,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, [recalculateAllRounds]);
 
 
-  const handleStatusChange = useCallback((roundId: number, playerId: string, rawInput: string) => {
+  const handleStatusChange = useCallback((roundId: number, playerId: string, newStatus: PlayerStatus) => {
     setRounds(prevRounds => {
       return prevRounds.map(r => {
         if (r.id === roundId) {
-          const newPlayerStatus = { ...r.playerStatus, [playerId]: rawInput };
+          const newPlayerStatus = { ...r.playerStatus, [playerId]: newStatus };
           const newScores = calculateRoundScores(newPlayerStatus, players, rules, gameDetails.is3CardGame);
           return { ...r, playerStatus: newPlayerStatus, scores: newScores };
         }
@@ -83,7 +108,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const resetGame = () => {
     setRounds(Array.from({ length: 15 }, (_, i) => ({
       id: i + 1,
-      playerStatus: {},
+      playerStatus: getDefaultPlayerStatuses(players),
       scores: {},
     })));
   };

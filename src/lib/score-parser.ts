@@ -1,71 +1,16 @@
 
-import type { Player, GameRules } from "./types";
-
-interface ParsedStatus {
-    isWinner: boolean;
-    isScoot: boolean;
-    isMidScoot: boolean;
-    isFull: boolean;
-    isGate: boolean;
-    is3C: boolean;
-    papluCount: 0 | 1 | 2 | 3;
-    points: number;
-}
+import type { Player, GameRules, PlayerStatus } from "./types";
 
 /**
- * Parses the raw input string for a player into a structured status object.
- * @param rawInput The raw string code (e.g., "1P-25", "3CG-D", "3C1P-D", "MS").
- * @returns A ParsedStatus object.
- */
-function parsePlayerStatus(rawInput: string): ParsedStatus {
-    const status: ParsedStatus = {
-        isWinner: false,
-        isScoot: false,
-        isMidScoot: false,
-        isFull: false,
-        isGate: false,
-        is3C: false,
-        papluCount: 0,
-        points: 0
-    };
-    
-    if (!rawInput) return status;
-
-    const upperInput = rawInput.toUpperCase();
-    
-    // Check for flags in the entire string, as they can be anywhere.
-    if (upperInput.includes("3C")) status.is3C = true;
-    if (upperInput.includes("3P")) status.papluCount = 3;
-    else if (upperInput.includes("2P")) status.papluCount = 2;
-    else if (upperInput.includes("1P")) status.papluCount = 1;
-
-    if (upperInput.includes("MS")) status.isMidScoot = true;
-    if (upperInput.includes("D")) status.isWinner = true;
-    if (upperInput.includes("G")) status.isGate = true;
-    if (upperInput.includes("S")) status.isScoot = true;
-    if (upperInput.includes("F")) status.isFull = true;
-
-    // Extract LAST numeric value to correctly handle cases like "3C-10"
-    const matches = upperInput.match(/-?\d+/g);
-    if (matches) {
-        status.points = parseInt(matches[matches.length - 1], 10);
-    }
-    
-    return status;
-}
-
-
-/**
- * Calculates scores for a round based on raw input strings.
- * This is a complete rewrite to fix previous logical errors.
- * @param playerStatus Record of player ID to their raw input string.
+ * Calculates scores for a round based on structured PlayerStatus objects.
+ * @param playerStatusRecord Record of player ID to their PlayerStatus object.
  * @param players Array of all players.
  * @param rules The game rules.
  * @param is3CardGame Whether the 3-card winner rule is active.
  * @returns A record of player IDs to their calculated scores.
  */
 export function calculateRoundScores(
-    playerStatus: Record<string, string>,
+    playerStatusRecord: Record<string, PlayerStatus>,
     players: Player[],
     rules: GameRules,
     is3CardGame: boolean
@@ -75,19 +20,16 @@ export function calculateRoundScores(
 
     if (players.length < 2) return finalScores;
 
-    const allPlayerFlags = players.map(p => ({
+    const allPlayerStatuses = players.map(p => ({
         playerId: p.id,
-        flags: parsePlayerStatus(playerStatus[p.id] || "")
+        status: playerStatusRecord[p.id]
     }));
 
-    // --- Stage 1: Bonus Transactions (3C and Paplu) ---
-    // These are independent transactions between a holder and all other players.
-    
-    // 1.1: 3C Payout
+    // --- Stage 1: 3C and Paplu bonuses ---
     if (is3CardGame) {
-        const threeCardPlayers = allPlayerFlags.filter(p => p.flags.is3C);
+        const threeCardPlayers = allPlayerStatuses.filter(p => p.status.is3C);
         threeCardPlayers.forEach(threeCardPlayer => {
-            allPlayerFlags.forEach(otherPlayer => {
+            allPlayerStatuses.forEach(otherPlayer => {
                 if (otherPlayer.playerId !== threeCardPlayer.playerId) {
                     finalScores[threeCardPlayer.playerId] += rules.threeCardHand;
                     finalScores[otherPlayer.playerId] -= rules.threeCardHand;
@@ -96,15 +38,14 @@ export function calculateRoundScores(
         });
     }
 
-    // 1.2: Paplu Payouts
-    allPlayerFlags.forEach(playerData => {
+    allPlayerStatuses.forEach(playerData => {
         let papluPayment = 0;
-        if (playerData.flags.papluCount === 1) papluPayment = rules.singlePaplu;
-        else if (playerData.flags.papluCount === 2) papluPayment = rules.doublePaplu;
-        else if (playerData.flags.papluCount === 3) papluPayment = rules.triplePaplu;
+        if (playerData.status.papluCount === 1) papluPayment = rules.singlePaplu;
+        else if (playerData.status.papluCount === 2) papluPayment = rules.doublePaplu;
+        else if (playerData.status.papluCount === 3) papluPayment = rules.triplePaplu;
 
         if (papluPayment > 0) {
-            allPlayerFlags.forEach(otherPlayer => {
+            allPlayerStatuses.forEach(otherPlayer => {
                 if (otherPlayer.playerId !== playerData.playerId) {
                     finalScores[playerData.playerId] += papluPayment;
                     finalScores[otherPlayer.playerId] -= papluPayment;
@@ -113,38 +54,38 @@ export function calculateRoundScores(
         }
     });
 
-    // --- Stage 2: Main Round Winner Payout ---
-    // The winner collects from all losing players. This happens after bonuses.
-
-    const winnerData = allPlayerFlags.find(p => p.flags.isWinner);
+    // --- Stage 2: Winner payouts ---
+    const winnerData = allPlayerStatuses.find(p => p.status.outcome === 'Winner');
     if (winnerData) {
         const winnerId = winnerData.playerId;
 
-        allPlayerFlags.forEach(loserData => {
-            // A player doesn't pay themselves.
-            if (loserData.playerId === winnerId) return;
+        allPlayerStatuses.forEach(loserData => {
+            if (loserData.playerId === winnerId) return; // skip winner
 
             const loserId = loserData.playerId;
-            const loserFlags = loserData.flags;
+            const loserStatus = loserData.status;
             let amountOwed = 0;
 
-            if (loserFlags.isScoot) {
-                amountOwed = rules.scoot;
-            } else if (loserFlags.isMidScoot) {
-                amountOwed = rules.midScoot;
-            } else if (loserFlags.isFull) {
-                amountOwed = rules.full;
-            } else {
-                // For regular players, points are based on their hand value.
-                amountOwed = Math.abs(loserFlags.points) * rules.perPoint;
-            }
-
-            // The "Gate" rule for the winner doubles the amount owed by non-scoot/mid-scoot players.
-            if (winnerData.flags.isGate && !loserFlags.isScoot && !loserFlags.isMidScoot) {
-                amountOwed *= 2;
+            switch (loserStatus.outcome) {
+                case 'Scoot':
+                    amountOwed = rules.scoot;
+                    break;
+                case 'MidScoot':
+                    amountOwed = rules.midScoot;
+                    break;
+                case 'Full':
+                    amountOwed = rules.full;
+                    break;
+                case 'Playing':
+                    amountOwed = Math.abs(loserStatus.points) * rules.perPoint;
+                    break;
             }
             
-            // The loser pays the winner. This is added to the existing scores.
+            // Gate doubles except for Scoot / MidScoot
+            if (winnerData.status.isGate && loserStatus.outcome !== 'Scoot' && loserStatus.outcome !== 'MidScoot') {
+                amountOwed *= 2;
+            }
+
             finalScores[loserId] -= amountOwed;
             finalScores[winnerId] += amountOwed;
         });

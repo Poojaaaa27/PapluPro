@@ -1,7 +1,6 @@
 
 "use client";
 
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -10,37 +9,39 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { GameRound, Player } from "@/lib/types";
+import type { GameRound, Player, PlayerStatus } from "@/lib/types";
+import { PlayerStatusPopover } from "./player-status-popover";
+import { getStatusString } from "@/lib/utils";
+import { Button } from "../ui/button";
 
 interface RoundsTableProps {
   rounds: GameRound[];
   players: Player[];
-  onStatusChange: (roundId: number, playerId: string, rawInput: string) => void;
+  onStatusChange: (roundId: number, playerId: string, newStatus: PlayerStatus) => void;
   isOrganizer: boolean;
 }
 
-function PlayerStatusCell({ roundId, playerId, value, onStatusChange, isOrganizer }: { roundId: number, playerId: string, value: string, onStatusChange: RoundsTableProps['onStatusChange'], isOrganizer: boolean }) {
+function PlayerStatusCell({ roundId, playerId, status, onStatusChange, isOrganizer }: { roundId: number, playerId: string, status: PlayerStatus, onStatusChange: RoundsTableProps['onStatusChange'], isOrganizer: boolean }) {
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onStatusChange(roundId, playerId, e.target.value.toUpperCase());
-  };
+  const displayString = getStatusString(status);
 
   if (!isOrganizer) {
       return (
-          <div className="text-center font-mono p-2 h-10 flex items-center justify-center">
-            {value || "-"}
+          <div className="text-center font-mono p-2 h-10 flex items-center justify-center text-sm">
+            {displayString || "-"}
           </div>
       );
   }
 
   return (
-    <Input
-        type="text"
-        value={value}
-        onChange={handleInputChange}
-        className="w-full h-10 font-mono text-center"
-        placeholder="e.g., 1P-25"
-    />
+    <PlayerStatusPopover
+      status={status}
+      onSave={(newStatus) => onStatusChange(roundId, playerId, newStatus)}
+    >
+        <Button variant="ghost" className="w-full h-12 font-mono text-xs text-center flex-wrap">
+            {displayString || <span className="text-muted-foreground">Set Status</span>}
+        </Button>
+    </PlayerStatusPopover>
   )
 }
 
@@ -67,7 +68,7 @@ export function RoundsTable({ rounds, players, onStatusChange, isOrganizer }: Ro
                    <PlayerStatusCell 
                         roundId={round.id}
                         playerId={player.id}
-                        value={round.playerStatus[player.id] || ""}
+                        status={round.playerStatus[player.id]}
                         onStatusChange={onStatusChange}
                         isOrganizer={isOrganizer}
                    />
