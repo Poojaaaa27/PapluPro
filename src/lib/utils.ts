@@ -12,15 +12,15 @@ export function getStatusString(status: PlayerStatus): string {
     const preRoundParts: string[] = [];
     const postRoundParts: string[] = [];
 
-    // Pre-round bonuses
+    // Pre-round bonuses / special cards
     if (status.is3C) preRoundParts.push("3C");
     if (status.papluCount > 0) preRoundParts.push(`${status.papluCount}P`);
+    if (status.isGate) preRoundParts.push('G');
     
     // Post-round outcome
     switch(status.outcome) {
         case 'Winner':
             postRoundParts.push('D');
-            if (status.isGate) postRoundParts.push('G');
             break;
         case 'Playing':
             if(status.points > 0) postRoundParts.push(`${status.points}`);
