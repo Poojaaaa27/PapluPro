@@ -7,10 +7,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  TableFooter,
 } from "@/components/ui/table";
 import type { GameRound, Player } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 
 interface ScoresTableProps {
   rounds: GameRound[];
@@ -25,75 +25,95 @@ export function ScoresTable({ rounds, players, totalScores }: ScoresTableProps) 
     return Object.values(round.scores).reduce((sum, score) => sum + score, 0);
   };
 
-  const getTotalOfTotals = () => {
-    return Object.values(totalScores).reduce((sum, score) => sum + score, 0);
-  };
-
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-muted/50">
-            <TableHead className="w-[80px] font-headline text-center">Round</TableHead>
-            {players.map(player => (
-              <TableHead key={player.id} className="font-headline text-center">
-                {player.name}
-              </TableHead>
-            ))}
-            <TableHead className="w-[80px] font-headline text-center">Total</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rounds.map((round) => {
-            const roundTotal = getRoundTotal(round);
-            const hasScores = Object.values(round.scores).some(score => score !== 0);
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-headline">Live Totals</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+                <TableRow>
+                    {players.map(player => (
+                        <TableHead key={player.id} className="text-center font-headline text-lg">{player.name}</TableHead>
+                    ))}
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                <TableRow>
+                    {players.map(player => (
+                        <TableCell key={player.id} className="text-center text-2xl font-bold">
+                            <div
+                            className={cn(
+                                totalScores[player.id] > 0 && "text-green-600",
+                                totalScores[player.id] < 0 && "text-red-600"
+                            )}
+                            >
+                            {totalScores[player.id]}
+                            </div>
+                        </TableCell>
+                    ))}
+                </TableRow>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
-            return (
-              <TableRow key={round.id}>
-                <TableCell className="font-semibold text-center align-middle">{round.id}</TableCell>
-                {players.map(player => {
-                  const roundScore = round.scores[player.id] || 0;
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-headline">Round by Round</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="w-[80px] font-headline text-center">Round</TableHead>
+                  {players.map(player => (
+                    <TableHead key={player.id} className="font-headline text-center">
+                      {player.name}
+                    </TableHead>
+                  ))}
+                  <TableHead className="w-[80px] font-headline text-center">Total</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rounds.map((round) => {
+                  const roundTotal = getRoundTotal(round);
+                  const hasScores = Object.values(round.scores).some(score => score !== 0);
+
                   return (
-                    <TableCell key={player.id} className="text-center align-middle">
-                      {hasScores && (
-                        <span
-                          className={cn(
-                            roundScore > 0 && "text-green-600",
-                            roundScore < 0 && "text-red-600"
-                          )}
-                        >
-                          {roundScore}
-                        </span>
-                      )}
-                    </TableCell>
+                    <TableRow key={round.id}>
+                      <TableCell className="font-semibold text-center align-middle">{round.id}</TableCell>
+                      {players.map(player => {
+                        const roundScore = round.scores[player.id] || 0;
+                        return (
+                          <TableCell key={player.id} className="text-center align-middle">
+                            {hasScores && (
+                              <span
+                                className={cn(
+                                  roundScore > 0 && "text-green-600",
+                                  roundScore < 0 && "text-red-600"
+                                )}
+                              >
+                                {roundScore}
+                              </span>
+                            )}
+                          </TableCell>
+                        );
+                      })}
+                      <TableCell className="font-semibold text-center align-middle text-muted-foreground">
+                        {hasScores ? roundTotal : ''}
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
-                <TableCell className="font-semibold text-center align-middle text-muted-foreground">
-                  {hasScores ? roundTotal : ''}
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-        <TableFooter>
-          <TableRow className="bg-muted/50 font-bold">
-            <TableHead className="text-center font-headline">Total</TableHead>
-            {players.map(player => (
-              <TableHead key={player.id} className="text-center text-lg">
-                <div
-                  className={cn(
-                    totalScores[player.id] > 0 && "text-green-600",
-                    totalScores[player.id] < 0 && "text-red-600"
-                  )}
-                >
-                  {totalScores[player.id]}
-                </div>
-              </TableHead>
-            ))}
-            <TableHead className="text-center font-headline">{getTotalOfTotals()}</TableHead>
-          </TableRow>
-        </TableFooter>
-      </Table>
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
