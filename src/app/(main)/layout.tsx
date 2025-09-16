@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { GameProvider } from '@/contexts/game-provider';
 import { RulesProvider } from '@/contexts/rules-provider';
 import { HistoryProvider } from '@/contexts/history-provider';
+import { TeamsProvider } from '@/contexts/teams-provider';
 
 export default function MainLayout({
   children,
@@ -46,16 +47,18 @@ export default function MainLayout({
 
   return (
     <RulesProvider>
-      <GameProvider>
-        <HistoryProvider>
-          <div className="relative flex min-h-screen w-full flex-col items-center">
-            <Header />
-            <main className="flex-1 w-full container max-w-screen-2xl">
-                {children}
-            </main>
-          </div>
-        </HistoryProvider>
-      </GameProvider>
+      <TeamsProvider>
+        <GameProvider>
+          <HistoryProvider>
+            <div className="relative flex min-h-screen w-full flex-col items-center">
+              <Header />
+              <main className="flex-1 w-full container max-w-screen-2xl">
+                  {children}
+              </main>
+            </div>
+          </HistoryProvider>
+        </GameProvider>
+      </TeamsProvider>
     </RulesProvider>
   );
 }
