@@ -23,7 +23,7 @@ export function getStatusString(status: PlayerStatus): string {
             if (status.isGate) postRoundParts.push('G');
             break;
         case 'Playing':
-            if(status.points > 0) postRoundParts.push(`-${status.points}`);
+            if(status.points > 0) postRoundParts.push(`${status.points}`);
             break;
         case 'Full':
             postRoundParts.push('F');
