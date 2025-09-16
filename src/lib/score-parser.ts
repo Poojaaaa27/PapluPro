@@ -82,11 +82,7 @@ export function calculateRoundScores(
                     break;
             }
             
-            // A player with "Gate" pays double to the winner.
-            if (loserStatus.isGate && loserStatus.outcome !== 'Scoot' && loserStatus.outcome !== 'MidScoot') {
-                amountOwed *= 2;
-            }
-            // If the winner has "Gate", they receive double from players.
+            // If the WINNER has "Gate", they receive double from players, except Scoot/MidScoot.
             if (winnerData.status.isGate && loserStatus.outcome !== 'Scoot' && loserStatus.outcome !== 'MidScoot') {
                 amountOwed *= 2;
             }
