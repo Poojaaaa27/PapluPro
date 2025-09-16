@@ -9,29 +9,39 @@ export function cn(...inputs: ClassValue[]) {
 export function getStatusString(status: PlayerStatus): string {
     if (!status) return "";
     
-    const parts: string[] = [];
+    const preRoundParts: string[] = [];
+    const postRoundParts: string[] = [];
 
-    if (status.is3C) parts.push("3C");
-    if (status.papluCount > 0) parts.push(`${status.papluCount}P`);
+    // Pre-round bonuses
+    if (status.is3C) preRoundParts.push("3C");
+    if (status.papluCount > 0) preRoundParts.push(`${status.papluCount}P`);
     
+    // Post-round outcome
     switch(status.outcome) {
         case 'Winner':
-            parts.push('D');
-            if (status.isGate) parts.push('G');
+            postRoundParts.push('D');
+            if (status.isGate) postRoundParts.push('G');
             break;
         case 'Playing':
-            if(status.points > 0) parts.push(`-${status.points}`);
+            if(status.points > 0) postRoundParts.push(`-${status.points}`);
             break;
         case 'Full':
-            parts.push('F');
+            postRoundParts.push('F');
             break;
         case 'Scoot':
-            parts.push('S');
+            postRoundParts.push('S');
             break;
         case 'MidScoot':
-            parts.push('MS');
+            postRoundParts.push('MS');
             break;
     }
 
-    return parts.join(', ');
+    const preRoundString = preRoundParts.join(', ');
+    const postRoundString = postRoundParts.join(', ');
+
+    if (preRoundString && postRoundString) {
+        return `${preRoundString} | ${postRoundString}`;
+    }
+
+    return preRoundString || postRoundString;
 }
