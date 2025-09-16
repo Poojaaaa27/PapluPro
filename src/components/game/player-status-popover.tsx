@@ -37,7 +37,6 @@ export function PlayerStatusPopover({ children, status, onSave }: PlayerStatusPo
     setCurrentStatus(defaultStatus);
   }
 
-  const isWinner = currentStatus.outcome === 'Winner';
   const isPlaying = currentStatus.outcome === 'Playing';
 
   return (
@@ -52,31 +51,41 @@ export function PlayerStatusPopover({ children, status, onSave }: PlayerStatusPo
             </p>
           </div>
           <div className="grid gap-4">
-            {/* Bonuses */}
-            <div className="flex items-center justify-between space-x-2 border-t pt-4">
-                <Label htmlFor="is3C-switch" className="font-headline">3 Card Hand (3C)</Label>
-                <Switch
-                    id="is3C-switch"
-                    checked={currentStatus.is3C}
-                    onCheckedChange={(checked) => setCurrentStatus(s => ({...s, is3C: checked}))}
-                />
-            </div>
-            <div className="grid grid-cols-3 items-center gap-4">
-              <Label htmlFor="paplu-select" className="font-headline col-span-1">Paplu</Label>
-              <Select
-                value={String(currentStatus.papluCount)}
-                onValueChange={(val) => setCurrentStatus(s => ({...s, papluCount: Number(val) as PapluCount}))}
-              >
-                <SelectTrigger id="paplu-select" className="col-span-2 h-8">
-                  <SelectValue placeholder="Select Paplu" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">None</SelectItem>
-                  <SelectItem value="1">Single Paplu (1P)</SelectItem>
-                  <SelectItem value="2">Double Paplu (2P)</SelectItem>
-                  <SelectItem value="3">Triple Paplu (3P)</SelectItem>
-                </SelectContent>
-              </Select>
+            {/* Bonuses & Special Cards */}
+            <div className="space-y-4 border-t pt-4">
+                <div className="flex items-center justify-between space-x-2">
+                    <Label htmlFor="is3C-switch" className="font-headline">3 Card Hand (3C)</Label>
+                    <Switch
+                        id="is3C-switch"
+                        checked={currentStatus.is3C}
+                        onCheckedChange={(checked) => setCurrentStatus(s => ({...s, is3C: checked}))}
+                    />
+                </div>
+                 <div className="flex items-center justify-between space-x-2">
+                    <Label htmlFor="isGate-switch" className="font-headline">Gate (G)</Label>
+                    <Switch
+                        id="isGate-switch"
+                        checked={currentStatus.isGate}
+                        onCheckedChange={(checked) => setCurrentStatus(s => ({...s, isGate: checked}))}
+                    />
+                </div>
+                <div className="grid grid-cols-3 items-center gap-4">
+                  <Label htmlFor="paplu-select" className="font-headline col-span-1">Paplu</Label>
+                  <Select
+                    value={String(currentStatus.papluCount)}
+                    onValueChange={(val) => setCurrentStatus(s => ({...s, papluCount: Number(val) as PapluCount}))}
+                  >
+                    <SelectTrigger id="paplu-select" className="col-span-2 h-8">
+                      <SelectValue placeholder="Select Paplu" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">None</SelectItem>
+                      <SelectItem value="1">Single Paplu (1P)</SelectItem>
+                      <SelectItem value="2">Double Paplu (2P)</SelectItem>
+                      <SelectItem value="3">Triple Paplu (3P)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
             </div>
 
             {/* Round Outcome */}
@@ -110,17 +119,6 @@ export function PlayerStatusPopover({ children, status, onSave }: PlayerStatusPo
                         value={currentStatus.points}
                         onChange={(e) => setCurrentStatus(s => ({...s, points: Number(e.target.value)}))}
                         className="col-span-2 h-8"
-                    />
-                </div>
-            )}
-
-            {isWinner && (
-                 <div className="flex items-center justify-between space-x-2">
-                    <Label htmlFor="isGate-switch" className="font-headline">Gate (G)</Label>
-                    <Switch
-                        id="isGate-switch"
-                        checked={currentStatus.isGate}
-                        onCheckedChange={(checked) => setCurrentStatus(s => ({...s, isGate: checked}))}
                     />
                 </div>
             )}

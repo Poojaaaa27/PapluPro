@@ -25,7 +25,7 @@ export function calculateRoundScores(
         status: playerStatusRecord[p.id]
     }));
 
-    // --- Stage 1: 3C and Paplu bonuses ---
+    // --- Stage 1: 3C and Paplu bonuses (Inter-player transactions) ---
     if (is3CardGame) {
         const threeCardPlayers = allPlayerStatuses.filter(p => p.status.is3C);
         threeCardPlayers.forEach(threeCardPlayer => {
@@ -77,11 +77,16 @@ export function calculateRoundScores(
                     amountOwed = rules.full;
                     break;
                 case 'Playing':
+                    // Points are from the loser's hand, so they are a positive value.
                     amountOwed = Math.abs(loserStatus.points) * rules.perPoint;
                     break;
             }
             
-            // Gate doubles except for Scoot / MidScoot
+            // A player with "Gate" pays double to the winner.
+            if (loserStatus.isGate && loserStatus.outcome !== 'Scoot' && loserStatus.outcome !== 'MidScoot') {
+                amountOwed *= 2;
+            }
+            // If the winner has "Gate", they receive double from players.
             if (winnerData.status.isGate && loserStatus.outcome !== 'Scoot' && loserStatus.outcome !== 'MidScoot') {
                 amountOwed *= 2;
             }
