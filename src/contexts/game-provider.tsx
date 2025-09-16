@@ -1,8 +1,8 @@
 
 "use client";
 
-import React, { createContext, useState, useMemo, useCallback, ReactNode, useContext } from "react";
-import type { Player, GameRound, GameDetails, PlayerStatus, PapluCount, RoundOutcome } from "@/lib/types";
+import React, { createContext, useState, useMemo, useCallback, ReactNode, useContext, useEffect } from "react";
+import type { Player, GameRound, GameDetails, PlayerStatus } from "@/lib/types";
 import { calculateRoundScores } from "@/lib/score-parser";
 import { RulesContext } from "./rules-provider";
 import { format } from "date-fns";
@@ -75,19 +75,28 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }
   const { rules } = rulesContext;
 
-  const recalculateAllRounds = useCallback((currentRounds: GameRound[], newPlayers: Player[]) => {
+  const recalculateAllRounds = useCallback((currentRounds: GameRound[], currentPlayers: Player[]) => {
     return currentRounds.map(r => {
-      const newPlayerStatus: Record<string, PlayerStatus> = {};
-      newPlayers.forEach(p => {
-        newPlayerStatus[p.id] = r.playerStatus[p.id] || { ...defaultPlayerStatus };
+      // Filter out statuses of players who are no longer in the game
+      const relevantPlayerStatus: Record<string, PlayerStatus> = {};
+      currentPlayers.forEach(p => {
+        if (r.playerStatus[p.id]) {
+          relevantPlayerStatus[p.id] = r.playerStatus[p.id];
+        } else {
+          // If a new player was added, give them a default status for existing rounds
+          relevantPlayerStatus[p.id] = { ...defaultPlayerStatus };
+        }
       });
-      const newScores = calculateRoundScores(newPlayerStatus, newPlayers, rules, gameDetails.is3CardGame);
-      return { ...r, playerStatus: newPlayerStatus, scores: newScores };
+      
+      const newScores = calculateRoundScores(relevantPlayerStatus, currentPlayers, rules, gameDetails.is3CardGame);
+      return { ...r, playerStatus: relevantPlayerStatus, scores: newScores };
     });
   }, [rules, gameDetails.is3CardGame]);
 
+
   const updatePlayers = useCallback((newPlayers: Player[]) => {
     setPlayers(newPlayers);
+    // When players update, we need to recalculate all rounds with the new player list
     setRounds(prevRounds => recalculateAllRounds(prevRounds, newPlayers));
   }, [recalculateAllRounds]);
 
@@ -117,11 +126,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const totals: Record<string, number> = {};
     players.forEach(p => totals[p.id] = 0);
     rounds.forEach(round => {
-      Object.entries(round.scores).forEach(([playerId, score]) => {
-        if (totals[playerId] !== undefined) {
-          totals[playerId] += score;
+      // Only include scores for current players
+      players.forEach(player => {
+        if (round.scores[player.id]) {
+          totals[player.id] += round.scores[player.id];
         }
-      });
+      })
     });
     return totals;
   }, [rounds, players]);
