@@ -32,7 +32,7 @@ export default function DashboardPage() {
 
     let wins = 0;
     gameHistory.forEach(game => {
-      const userPlayer = game.players.find(p => p.name === user.name);
+      const userPlayer = game.players.find(p => p.id === user.id);
       if (!userPlayer) return;
 
       const finalScores: Record<string, number> = {};
@@ -62,7 +62,7 @@ export default function DashboardPage() {
     let lastGameScore = 0;
     let lastGameOpponent = "N/A";
     
-    const lastGameUser = lastGame.players.find(p => p.name === user.name);
+    const lastGameUser = lastGame.players.find(p => p.id === user.id);
     if (lastGameUser) {
         lastGameScore = lastGame.rounds.reduce((total, round) => total + (round.scores[lastGameUser.id] || 0), 0);
     }

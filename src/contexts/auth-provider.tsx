@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { User, UserRole } from "@/lib/types";
@@ -34,8 +35,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = (userData: User) => {
-    localStorage.setItem("paplu-pro-user", JSON.stringify(userData));
-    setUser(userData);
+    const userWithId = { ...userData, id: userData.name }; // Use name as a simple ID
+    localStorage.setItem("paplu-pro-user", JSON.stringify(userWithId));
+    setUser(userWithId);
   };
 
   const logout = () => {

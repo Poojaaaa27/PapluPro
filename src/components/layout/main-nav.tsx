@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -14,6 +15,7 @@ export function MainNav() {
     { href: "/history", label: "History" },
     { href: "/teams", label: "Teams" },
     { href: "/rules", label: "Rules" },
+    { href: "/analytics", label: "Analytics" },
   ];
 
   return (

@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from "next/image";
@@ -35,7 +36,7 @@ export default function LoginPage() {
   const handleLogin = (e: FormEvent) => {
     e.preventDefault();
     if (name.trim()) {
-      login({ name: name.trim(), role });
+      login({ id: name.trim(), name: name.trim(), role });
       router.push("/dashboard");
     }
   };
