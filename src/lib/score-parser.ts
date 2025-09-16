@@ -82,8 +82,12 @@ export function calculateRoundScores(
                     break;
             }
             
-            // If the WINNER has "Gate", they receive double from players, except Scoot/MidScoot.
-            if (winnerData.status.isGate && loserStatus.outcome !== 'Scoot' && loserStatus.outcome !== 'MidScoot') {
+            // Apply Gate logic: If winner OR loser has Gate, double points for 'Playing' or 'Full'.
+            // Gate does not apply to Scoot or MidScoot.
+            const isGateInvolved = winnerData.status.isGate || loserStatus.isGate;
+            const isEligibleForGate = loserStatus.outcome === 'Playing' || loserStatus.outcome === 'Full';
+
+            if (isGateInvolved && isEligibleForGate) {
                 amountOwed *= 2;
             }
 
