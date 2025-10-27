@@ -1,0 +1,127 @@
+{
+  "entities": {
+    "Player": {
+      "title": "Player",
+      "description": "Represents a player in the game.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the player."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the player."
+        }
+      },
+      "required": ["id", "name"]
+    },
+    "PlayerStatus": {
+        "title": "Player Status",
+        "description": "Represents the status of a player in a specific round.",
+        "type": "object",
+        "properties": {
+            "is3C": { "type": "boolean" },
+            "papluCount": { "type": "number" },
+            "outcome": { "type": "string", "enum": ["Winner", "Playing", "Full", "Scoot", "MidScoot"] },
+            "points": { "type": ["number", "null"] },
+            "isGate": { "type": "boolean" }
+        }
+    },
+    "GameRound": {
+      "title": "Game Round",
+      "description": "Represents a single round in a game session.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "number",
+          "description": "The round number."
+        },
+        "playerStatus": {
+          "type": "object",
+          "description": "A map of player IDs to their status in the round.",
+          "additionalProperties": {
+            "$ref": "#/entities/PlayerStatus"
+          }
+        },
+        "scores": {
+          "type": "object",
+          "description": "A map of player IDs to their scores for the round.",
+          "additionalProperties": {
+            "type": "number"
+          }
+        }
+      },
+      "required": ["id", "playerStatus", "scores"]
+    },
+    "GameSession": {
+      "title": "Game Session",
+      "description": "Represents a complete game session.",
+      "type": "object",
+      "properties": {
+        "location": {
+          "type": "string"
+        },
+        "date": {
+          "type": "string",
+          "format": "date"
+        },
+        "teamName": {
+          "type": "string"
+        },
+        "players": {
+          "type": "array",
+          "items": {
+            "$ref": "#/entities/Player"
+          }
+        },
+        "rounds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/entities/GameRound"
+          }
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Completed", "In Progress", "Not Started"]
+        }
+      },
+      "required": ["location", "date", "teamName", "players", "rounds", "status"]
+    },
+    "Team": {
+      "title": "Team",
+      "description": "Represents a team of players.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the team."
+        },
+        "players": {
+          "type": "array",
+          "items": {
+            "$ref": "#/entities/Player"
+          }
+        }
+      },
+      "required": ["name", "players"]
+    }
+  },
+  "auth": {
+    "providers": []
+  },
+  "firestore": {
+    "/gameSessions/{sessionId}": {
+      "schema": {
+        "$ref": "#/entities/GameSession"
+      },
+      "description": "Stores all game session history."
+    },
+    "/teams/{teamId}": {
+      "schema": {
+        "$ref": "#/entities/Team"
+      },
+      "description": "Stores all player teams."
+    }
+  }
+}

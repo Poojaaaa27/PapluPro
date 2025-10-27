@@ -9,6 +9,7 @@ import { GameProvider } from '@/contexts/game-provider';
 import { RulesProvider } from '@/contexts/rules-provider';
 import { HistoryProvider } from '@/contexts/history-provider';
 import { TeamsProvider } from '@/contexts/teams-provider';
+import { FirebaseProvider } from '@/contexts/firebase-provider';
 
 export default function MainLayout({
   children,
@@ -46,19 +47,21 @@ export default function MainLayout({
   }
 
   return (
-    <RulesProvider>
-      <TeamsProvider>
-        <GameProvider>
-          <HistoryProvider>
-            <div className="relative flex min-h-screen w-full flex-col items-center">
-              <Header />
-              <main className="flex-1 w-full container max-w-screen-2xl">
-                  {children}
-              </main>
-            </div>
-          </HistoryProvider>
-        </GameProvider>
-      </TeamsProvider>
-    </RulesProvider>
+    <FirebaseProvider>
+      <RulesProvider>
+        <TeamsProvider>
+          <GameProvider>
+            <HistoryProvider>
+              <div className="relative flex min-h-screen w-full flex-col items-center">
+                <Header />
+                <main className="flex-1 w-full container max-w-screen-2xl">
+                    {children}
+                </main>
+              </div>
+            </HistoryProvider>
+          </GameProvider>
+        </TeamsProvider>
+      </RulesProvider>
+    </FirebaseProvider>
   );
 }

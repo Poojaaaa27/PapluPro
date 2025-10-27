@@ -1,7 +1,10 @@
 "use client";
 
-import React, { createContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useState, useEffect, ReactNode, useContext } from "react";
 import type { Team, Player } from "@/lib/types";
+import { useAuth } from "@/hooks/use-auth";
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getFirestore } from "firebase/firestore";
+import { FirebaseContext } from "./firebase-provider";
 
 interface TeamsContextType {
   teams: Team[];
@@ -14,74 +17,66 @@ interface TeamsContextType {
 
 export const TeamsContext = createContext<TeamsContextType | undefined>(undefined);
 
-const MOCK_TEAMS: Team[] = [
-    {
-        id: 'team-1',
-        name: 'The High Rollers',
-        players: [
-            { id: "1", name: "jo" },
-            { id: "2", name: "so" },
-            { id: "3", name: "fo" },
-        ]
-    },
-    {
-        id: 'team-2',
-        name: 'The Card Sharks',
-        players: [
-            { id: "4", name: "Player A" },
-            { id: "5", name: "Player B" },
-            { id: "6", name: "Player C" },
-            { id: "7", name: "Player D" },
-        ]
-    }
-]
-
 export function TeamsProvider({ children }: { children: ReactNode }) {
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const firebaseContext = useContext(FirebaseContext);
+
 
   useEffect(() => {
+    if (!firebaseContext || !user) {
+        setLoading(false);
+        return;
+    };
+    const db = getFirestore(firebaseContext.app);
+
+    const teamsCollectionRef = collection(db, "teams");
+
+    const unsubscribe = onSnapshot(teamsCollectionRef, (snapshot) => {
+        const teamsData: Team[] = [];
+        snapshot.forEach(doc => {
+            teamsData.push({ id: doc.id, ...doc.data() } as Team);
+        });
+        setTeams(teamsData);
+        setLoading(false);
+    }, (error) => {
+        console.error("Error fetching teams:", error);
+        setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [firebaseContext, user]);
+
+  const addTeam = async (teamData: Omit<Team, 'id'>) => {
+    if (!firebaseContext) return;
+    const db = getFirestore(firebaseContext.app);
     try {
-      const storedTeams = localStorage.getItem("paplu-pro-teams");
-      if (storedTeams) {
-        setTeams(JSON.parse(storedTeams));
-      } else {
-        // Load mock teams if no teams are in local storage
-        setTeams(MOCK_TEAMS);
-        updateLocalStorage(MOCK_TEAMS);
-      }
+        await addDoc(collection(db, "teams"), teamData);
     } catch (error) {
-      console.error("Failed to parse teams from localStorage", error);
-      localStorage.removeItem("paplu-pro-teams");
-      setTeams(MOCK_TEAMS);
-    } finally {
-      setLoading(false);
+        console.error("Error adding team: ", error);
     }
-  }, []);
-
-  const updateLocalStorage = (updatedTeams: Team[]) => {
-    localStorage.setItem("paplu-pro-teams", JSON.stringify(updatedTeams));
   };
 
-  const addTeam = (teamData: Omit<Team, 'id'>) => {
-    const newTeam: Team = { ...teamData, id: `${Date.now()}` };
-    const updatedTeams = [...teams, newTeam];
-    setTeams(updatedTeams);
-    updateLocalStorage(updatedTeams);
+  const updateTeam = async (teamId: string, updatedData: Partial<Omit<Team, 'id'>>) => {
+    if (!firebaseContext) return;
+    const db = getFirestore(firebaseContext.app);
+    const teamDocRef = doc(db, "teams", teamId);
+    try {
+        await updateDoc(teamDocRef, updatedData);
+    } catch (error) {
+        console.error("Error updating team: ", error);
+    }
   };
 
-  const updateTeam = (teamId: string, updatedData: Partial<Omit<Team, 'id'>>) => {
-    const updatedTeams = teams.map(team =>
-      team.id === teamId ? { ...team, ...updatedData } : team
-    );
-    setTeams(updatedTeams);
-    updateLocalStorage(updatedTeams);
-  };
-
-  const deleteTeam = (teamId: string) => {
-    const updatedTeams = teams.filter(team => team.id !== teamId);
-    setTeams(updatedTeams);
-    updateLocalStorage(updatedTeams);
+  const deleteTeam = async (teamId: string) => {
+    if (!firebaseContext) return;
+    const db = getFirestore(firebaseContext.app);
+    try {
+        await deleteDoc(doc(db, "teams", teamId));
+    } catch (error) {
+        console.error("Error deleting team: ", error);
+    }
   };
   
   const getTeamById = (teamId: string) => {

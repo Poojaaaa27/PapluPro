@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo } from "react";
@@ -35,19 +34,15 @@ export default function GamePage() {
     if (!gameDetails.is3CardGame || players.length === 0) return errors;
 
     for (const round of rounds) {
-        // --- Paplu validation (real-time) ---
         const papluCount = Object.values(round.playerStatus).reduce((acc, s) => acc + (s?.papluCount || 0), 0);
         if (papluCount > 3) {
             errors[round.id] = `Max 3 Paplus allowed. Found: ${papluCount}.`;
-            continue; // Show first error for the round
+            continue; 
         }
 
-        // --- Winner validation (on round completion) ---
-        // A round is complete if every player has a status other than the initial default.
         const isRoundFullyEntered = players.every(player => {
             const status = round.playerStatus[player.id];
             if (!status) return false;
-            // A player's status is considered entered if it's not the default "Playing" with no points/bonuses.
             const isDefaultPlaying = status.outcome === 'Playing' && status.points === null && !status.is3C && status.papluCount === 0 && !status.isGate;
             return !isDefaultPlaying;
         });
@@ -73,8 +68,7 @@ export default function GamePage() {
       });
       return;
     }
-    const newGameSession: GameSession = {
-      id: `${Date.now()}`,
+    const newGameSession: Omit<GameSession, 'id'> = {
       ...gameDetails,
       players,
       rounds,
