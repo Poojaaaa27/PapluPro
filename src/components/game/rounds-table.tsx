@@ -92,7 +92,7 @@ export function RoundsTable({
         <Table className="w-full border-collapse min-w-[600px]">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[80px] text-center font-headline sticky left-0 top-0 z-40 bg-background/95 backdrop-blur-sm shadow-sm">
+              <TableHead className="w-[80px] font-headline text-lg font-bold text-center sticky left-0 top-0 z-40 bg-background/95 backdrop-blur-sm shadow-sm">
                 Round
               </TableHead>
               {players.map((player) => (
@@ -111,25 +111,24 @@ export function RoundsTable({
               const status = getRoundStatus(round);
               const isCurrent =
                 index === currentRoundIndex && currentRoundIndex !== -1;
-
-              // Determine the background color for the sticky cell
-              let stickyCellBgClass = "bg-background/95 backdrop-blur-sm";
-               if (status === 'completed') {
-                  stickyCellBgClass = "bg-green-100/80 dark:bg-green-900/80 backdrop-blur-sm";
-              }
-              if (isCurrent) {
-                  stickyCellBgClass = "bg-blue-100/80 dark:bg-blue-900/80 backdrop-blur-sm";
-              } 
+              
+              const rowBgClass = isCurrent
+                ? "bg-blue-100/50 dark:bg-blue-900/40"
+                : status === "completed"
+                ? "bg-green-100/50 dark:bg-green-900/40"
+                : "";
+              
+              const stickyCellBgClass = isCurrent
+                ? "bg-blue-100/90 dark:bg-blue-900/90 backdrop-blur-sm"
+                : status === "completed"
+                ? "bg-green-100/90 dark:bg-green-900/90 backdrop-blur-sm"
+                : "bg-background/95 backdrop-blur-sm";
 
 
               return (
                 <TableRow
                   key={round.id}
-                  className={cn(
-                    status === "completed" &&
-                      "bg-green-100/50 dark:bg-green-900/40",
-                    isCurrent && "bg-blue-100/50 dark:bg-blue-900/40"
-                  )}
+                  className={cn(rowBgClass)}
                 >
                   <TableCell className={cn("font-medium text-center sticky left-0 z-10", stickyCellBgClass)}>
                     {round.id}
