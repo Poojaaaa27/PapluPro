@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import type { GameRound, Player, PlayerStatus } from "@/lib/types";
 import { PlayerStatusPopover } from "./player-status-popover";
-import { getStatusString } from "@/lib/utils";
+import { getStatusString, cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { useGame } from "@/hooks/use-game";
 import { PlusCircle } from "lucide-react";
@@ -50,6 +50,13 @@ function PlayerStatusCell({ roundId, playerId, status, onStatusChange, isOrganiz
 export function RoundsTable({ rounds, players, onStatusChange, isOrganizer }: RoundsTableProps) {
   const { addRound } = useGame();
 
+  const getRoundStatus = (round: GameRound) => {
+    const hasScores = Object.values(round.scores).some(score => score !== 0);
+    return hasScores ? 'completed' : 'pending';
+  };
+
+  const currentRoundIndex = rounds.findIndex(r => getRoundStatus(r) === 'pending');
+
   return (
     <div className="space-y-4">
       <div className="rounded-md border">
@@ -65,22 +72,33 @@ export function RoundsTable({ rounds, players, onStatusChange, isOrganizer }: Ro
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rounds.map((round) => (
-              <TableRow key={round.id}>
-                <TableCell className="font-medium text-center align-middle">{round.id}</TableCell>
-                {players.map((player) => (
-                  <TableCell key={player.id} className="p-1">
-                    <PlayerStatusCell 
-                          roundId={round.id}
-                          playerId={player.id}
-                          status={round.playerStatus[player.id]}
-                          onStatusChange={onStatusChange}
-                          isOrganizer={isOrganizer}
-                    />
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
+            {rounds.map((round, index) => {
+              const status = getRoundStatus(round);
+              const isCurrent = index === currentRoundIndex;
+
+              return (
+                <TableRow 
+                  key={round.id}
+                  className={cn(
+                    status === 'completed' && 'bg-green-100/50 dark:bg-green-900/20',
+                    isCurrent && 'bg-blue-100/50 dark:bg-blue-900/20'
+                  )}
+                >
+                  <TableCell className="font-medium text-center align-middle">{round.id}</TableCell>
+                  {players.map((player) => (
+                    <TableCell key={player.id} className="p-1">
+                      <PlayerStatusCell 
+                            roundId={round.id}
+                            playerId={player.id}
+                            status={round.playerStatus[player.id]}
+                            onStatusChange={onStatusChange}
+                            isOrganizer={isOrganizer}
+                      />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              )
+            })}
           </TableBody>
         </Table>
       </div>
