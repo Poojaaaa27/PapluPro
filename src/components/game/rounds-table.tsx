@@ -67,13 +67,13 @@ export function RoundsTable({ rounds, players, onStatusChange, isOrganizer }: Ro
         <Table className="w-full border-collapse">
           <TableHeader className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm shadow-sm">
             <TableRow>
-              <TableHead className="w-[80px] font-headline text-center bg-background sticky left-0 top-0 z-40 shadow-sm">
+              <TableHead className="w-[80px] font-headline text-center bg-inherit sticky left-0 top-0 z-40 shadow-sm">
                 Round
               </TableHead>
               {players.map((player) => (
                 <TableHead
                   key={player.id}
-                  className="font-headline text-center bg-background sticky top-0 z-30"
+                  className="font-headline text-center bg-inherit sticky top-0 z-30"
                 >
                   {player.name}
                 </TableHead>
