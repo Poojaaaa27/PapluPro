@@ -1,0 +1,108 @@
+/**
+ * @fileoverview Firestore Security Rules for Paplu Pro.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for all data. Each user has full control over their own data tree, and no access to other users' data.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores user profiles.
+ * - /users/{userId}/gameSessions/{gameSessionId}: Stores game session data for a specific user.
+ * - /users/{userId}/gameSessions/{gameSessionId}/rounds/{roundId}: Stores round data within a game session for a specific user.
+ *
+ * Key Security Decisions:
+ * - Users can only access data under their own user ID.
+ * - There are no administrative roles or shared documents in this application.
+ * - List operations are restricted to the owner of the data.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Allows a user to manage their own profile.
+     * @path /users/{userId}
+     * @allow (create) User with ID matching auth UID can create their profile.
+     * @allow (get, update, delete) Authenticated user can access their profile.
+     * @deny (create) User with ID not matching auth UID cannot create a profile.
+     * @deny (get, update, delete) Unauthenticated user cannot access any profile.
+     * @principle Enforces document ownership for all operations on user profiles.
+     */
+    match /users/{userId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+          return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isExistingOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Allows a user to manage their own game sessions.
+     * @path /users/{userId}/gameSessions/{gameSessionId}
+     * @allow (create) Authenticated user can create a game session under their user ID.
+     * @allow (get, update, delete) Authenticated user can access their game sessions.
+     * @deny (create) User cannot create a game session under another user's ID.
+     * @deny (get, update, delete) Unauthenticated user cannot access any game sessions.
+     * @principle Enforces document ownership for all operations on game sessions.
+     */
+    match /users/{userId}/gameSessions/{gameSessionId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+          return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isExistingOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Allows a user to manage their own rounds within a game session.
+     * @path /users/{userId}/gameSessions/{gameSessionId}/rounds/{roundId}
+     * @allow (create) Authenticated user can create a round under their game session.
+     * @allow (get, update, delete) Authenticated user can access their rounds.
+     * @deny (create) User cannot create a round under another user's game session.
+     * @deny (get, update, delete) Unauthenticated user cannot access any rounds.
+     * @principle Enforces document ownership for all operations on rounds.
+     */
+    match /users/{userId}/gameSessions/{gameSessionId}/rounds/{roundId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+          return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isExistingOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+  }
+}
