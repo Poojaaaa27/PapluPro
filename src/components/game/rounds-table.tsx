@@ -91,7 +91,7 @@ export function RoundsTable({
     <div className="space-y-4">
       <div className="rounded-md border relative max-h-[70vh] overflow-auto">
         <Table className="w-full border-collapse min-w-[600px]">
-          <TableHeader className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm">
+          <TableHeader>
             <TableRow>
               <TableHead className="w-[80px] text-center font-headline sticky left-0 top-0 z-40 bg-background/95 backdrop-blur-sm shadow-sm">
                 Round
