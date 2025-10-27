@@ -9,7 +9,7 @@ import { GameProvider } from '@/contexts/game-provider';
 import { RulesProvider } from '@/contexts/rules-provider';
 import { HistoryProvider } from '@/contexts/history-provider';
 import { TeamsProvider } from '@/contexts/teams-provider';
-import { FirebaseProvider } from '@/contexts/firebase-provider';
+import { FirebaseClientProvider } from '@/firebase';
 
 export default function MainLayout({
   children,
@@ -47,7 +47,7 @@ export default function MainLayout({
   }
 
   return (
-    <FirebaseProvider>
+    <FirebaseClientProvider>
       <RulesProvider>
         <TeamsProvider>
           <GameProvider>
@@ -62,6 +62,6 @@ export default function MainLayout({
           </GameProvider>
         </TeamsProvider>
       </RulesProvider>
-    </FirebaseProvider>
+    </FirebaseClientProvider>
   );
 }

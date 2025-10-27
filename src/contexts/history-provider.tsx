@@ -4,7 +4,8 @@ import React, { createContext, useState, useEffect, ReactNode, useContext } from
 import type { GameSession } from "@/lib/types";
 import { useAuth } from "@/hooks/use-auth";
 import { collection, onSnapshot, addDoc, deleteDoc, doc, getFirestore } from "firebase/firestore";
-import { FirebaseContext } from "./firebase-provider";
+import { useFirebase } from "@/firebase";
+import { addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 interface HistoryContextType {
   gameHistory: GameSession[];
@@ -19,16 +20,15 @@ export function HistoryProvider({ children }: { children: ReactNode }) {
   const [gameHistory, setGameHistory] = useState<GameSession[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-  const firebaseContext = useContext(FirebaseContext);
+  const { firestore } = useFirebase();
 
   useEffect(() => {
-    if (!firebaseContext || !user) {
+    if (!firestore || !user) {
       setLoading(false);
       return;
     };
-    const db = getFirestore(firebaseContext.app);
     
-    const historyCollectionRef = collection(db, "gameSessions");
+    const historyCollectionRef = collection(firestore, "gameSessions");
     
     const unsubscribe = onSnapshot(historyCollectionRef, (snapshot) => {
       const history: GameSession[] = [];
@@ -46,27 +46,19 @@ export function HistoryProvider({ children }: { children: ReactNode }) {
 
     return () => unsubscribe();
 
-  }, [firebaseContext, user]);
+  }, [firestore, user]);
 
 
-  const addGameSession = async (session: Omit<GameSession, 'id'>) => {
-    if (!firebaseContext) return;
-    const db = getFirestore(firebaseContext.app);
-    try {
-      await addDoc(collection(db, "gameSessions"), session);
-    } catch (error) {
-      console.error("Error adding game session: ", error);
-    }
+  const addGameSession = (session: Omit<GameSession, 'id'>) => {
+    if (!firestore) return;
+    const historyCollectionRef = collection(firestore, "gameSessions");
+    addDocumentNonBlocking(historyCollectionRef, session);
   };
 
-  const deleteGameSession = async (sessionId: string) => {
-    if (!firebaseContext) return;
-    const db = getFirestore(firebaseContext.app);
-    try {
-      await deleteDoc(doc(db, "gameSessions", sessionId));
-    } catch (error) {
-      console.error("Error deleting game session: ", error);
-    }
+  const deleteGameSession = (sessionId: string) => {
+    if (!firestore) return;
+    const gameDocRef = doc(firestore, "gameSessions", sessionId);
+    deleteDocumentNonBlocking(gameDocRef);
   };
 
   const value = {

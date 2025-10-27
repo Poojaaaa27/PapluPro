@@ -4,7 +4,8 @@ import React, { createContext, useState, useEffect, ReactNode, useContext } from
 import type { Team, Player } from "@/lib/types";
 import { useAuth } from "@/hooks/use-auth";
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getFirestore } from "firebase/firestore";
-import { FirebaseContext } from "./firebase-provider";
+import { useFirebase } from "@/firebase";
+import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 interface TeamsContextType {
   teams: Team[];
@@ -21,17 +22,16 @@ export function TeamsProvider({ children }: { children: ReactNode }) {
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-  const firebaseContext = useContext(FirebaseContext);
+  const { firestore } = useFirebase();
 
 
   useEffect(() => {
-    if (!firebaseContext || !user) {
+    if (!firestore || !user) {
         setLoading(false);
         return;
     };
-    const db = getFirestore(firebaseContext.app);
 
-    const teamsCollectionRef = collection(db, "teams");
+    const teamsCollectionRef = collection(firestore, "teams");
 
     const unsubscribe = onSnapshot(teamsCollectionRef, (snapshot) => {
         const teamsData: Team[] = [];
@@ -46,37 +46,24 @@ export function TeamsProvider({ children }: { children: ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, [firebaseContext, user]);
+  }, [firestore, user]);
 
-  const addTeam = async (teamData: Omit<Team, 'id'>) => {
-    if (!firebaseContext) return;
-    const db = getFirestore(firebaseContext.app);
-    try {
-        await addDoc(collection(db, "teams"), teamData);
-    } catch (error) {
-        console.error("Error adding team: ", error);
-    }
+  const addTeam = (teamData: Omit<Team, 'id'>) => {
+    if (!firestore) return;
+    const teamsCollectionRef = collection(firestore, "teams");
+    addDocumentNonBlocking(teamsCollectionRef, teamData);
   };
 
-  const updateTeam = async (teamId: string, updatedData: Partial<Omit<Team, 'id'>>) => {
-    if (!firebaseContext) return;
-    const db = getFirestore(firebaseContext.app);
-    const teamDocRef = doc(db, "teams", teamId);
-    try {
-        await updateDoc(teamDocRef, updatedData);
-    } catch (error) {
-        console.error("Error updating team: ", error);
-    }
+  const updateTeam = (teamId: string, updatedData: Partial<Omit<Team, 'id'>>) => {
+    if (!firestore) return;
+    const teamDocRef = doc(firestore, "teams", teamId);
+    updateDocumentNonBlocking(teamDocRef, updatedData);
   };
 
-  const deleteTeam = async (teamId: string) => {
-    if (!firebaseContext) return;
-    const db = getFirestore(firebaseContext.app);
-    try {
-        await deleteDoc(doc(db, "teams", teamId));
-    } catch (error) {
-        console.error("Error deleting team: ", error);
-    }
+  const deleteTeam = (teamId: string) => {
+    if (!firestore) return;
+    const teamDocRef = doc(firestore, "teams", teamId);
+    deleteDocumentNonBlocking(teamDocRef);
   };
   
   const getTeamById = (teamId: string) => {

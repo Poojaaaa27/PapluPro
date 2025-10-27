@@ -38,10 +38,6 @@
       "type": "object",
       "description": "Represents a single game session.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the game session."
-        },
         "location": {
           "type": "string",
           "description": "The location where the game session took place."
@@ -51,16 +47,32 @@
           "description": "The date of the game session.",
           "format": "date-time"
         },
-        "numberOfPlayers": {
-          "type": "number",
-          "description": "The number of players in the game session."
+        "players": {
+          "type": "array",
+          "items": {
+            "$ref": "#/entities/Player"
+          }
+        },
+        "rounds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/entities/Round"
+          }
+        },
+        "status": {
+          "type": "string"
+        },
+        "teamName": {
+          "type": "string"
         }
       },
       "required": [
-        "id",
         "location",
         "date",
-        "numberOfPlayers"
+        "players",
+        "rounds",
+        "status",
+        "teamName"
       ]
     },
     "Round": {
@@ -70,119 +82,76 @@
       "description": "Represents a single round within a game session.",
       "properties": {
         "id": {
-          "type": "string",
-          "description": "Unique identifier for the round."
+          "type": "number"
         },
-        "gameSessionId": {
-          "type": "string",
-          "description": "Reference to GameSession. (Relationship: GameSession 1:N Round)"
+        "playerStatus": {
+          "type": "object"
         },
-        "roundNumber": {
-          "type": "number",
-          "description": "The number of the round within the game session."
-        },
-        "winner": {
-          "type": "string",
-          "description": "The winning player of the round."
-        },
-        "papluEarned": {
-          "type": "string",
-          "description": "Type of paplu earned (Single, Double, Triple)."
-        },
-        "scootStatuses": {
-          "type": "string",
-          "description": "Scoot statuses of players in the round."
-        },
-        "perPointScores": {
-          "type": "string",
-          "description": "Per-point scores of players in the round."
-        },
-        "playerStatuses": {
-          "type": "string",
-          "description": "Statuses of individual players in the round."
+        "scores": {
+          "type": "object"
         }
       },
       "required": [
         "id",
-        "gameSessionId",
-        "roundNumber",
-        "winner",
-        "papluEarned",
-        "scootStatuses",
-        "perPointScores",
-        "playerStatuses"
+        "playerStatus",
+        "scores"
+      ]
+    },
+    "Player": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Player",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "name"]
+    },
+    "Team": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Team",
+      "type": "object",
+      "description": "Represents a team of players.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the team."
+        },
+        "players": {
+          "type": "array",
+          "items": {
+            "$ref": "#/entities/Player"
+          },
+          "description": "A list of players in the team."
+        }
+      },
+      "required": [
+        "name",
+        "players"
       ]
     }
   },
   "auth": {
     "providers": [
-      "password",
       "anonymous"
     ]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}",
-        "definition": {
-          "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Stores user profiles. Path-based ownership ensures only the user can access their data.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            }
-          ]
-        }
+    "/gameSessions/{gameSessionId}": {
+      "schema": {
+        "$ref": "#/entities/GameSession"
       },
-      {
-        "path": "/users/{userId}/gameSessions/{gameSessionId}",
-        "definition": {
-          "entityName": "GameSession",
-          "schema": {
-            "$ref": "#/backend/entities/GameSession"
-          },
-          "description": "Stores game session data for a specific user. Path-based ownership ensures only the user can access their game sessions.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "gameSessionId",
-              "description": "The unique identifier for the game session."
-            }
-          ]
-        }
+      "description": "Stores all game session data."
+    },
+    "/teams/{teamId}": {
+      "schema": {
+        "$ref": "#/entities/Team"
       },
-      {
-        "path": "/users/{userId}/gameSessions/{gameSessionId}/rounds/{roundId}",
-        "definition": {
-          "entityName": "Round",
-          "schema": {
-            "$ref": "#/backend/entities/Round"
-          },
-          "description": "Stores round data within a game session for a specific user. Path-based ownership ensures only the user can access round data within their game sessions.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "gameSessionId",
-              "description": "The unique identifier for the game session."
-            },
-            {
-              "name": "roundId",
-              "description": "The unique identifier for the round."
-            }
-          ]
-        }
-      }
-    ],
-    "reasoning": "The Firestore structure is designed to ensure authorization independence, clarity, and scalability. User data is stored in a private collection (`/users/{userId}`) to enforce path-based ownership. Game sessions, rounds are stored as subcollections to the user in order to have all the data available for a specific user, this avoids the need to query all the games to show only those related to a specific user. Since the application does not specify collaborative documents or global roles, only the path-based ownership is required. This design choice promotes secure `list` operations because the security rules can easily validate if the user is authorized to read the data under the path. Denormalization is not needed since there aren't collaborative data or data depending on parent attributes."
+      "description": "Stores all team data."
+    }
   }
 }
