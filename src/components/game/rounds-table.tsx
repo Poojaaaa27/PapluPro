@@ -113,6 +113,15 @@ export function RoundsTable({
               const isCurrent =
                 index === currentRoundIndex && currentRoundIndex !== -1;
 
+              // Determine the background color for the sticky cell
+              let stickyCellBgClass = "bg-background/95 backdrop-blur-sm";
+              if (isCurrent) {
+                  stickyCellBgClass = "bg-blue-100/80 dark:bg-blue-900/80 backdrop-blur-sm";
+              } else if (status === 'completed') {
+                  stickyCellBgClass = "bg-green-100/80 dark:bg-green-900/80 backdrop-blur-sm";
+              }
+
+
               return (
                 <TableRow
                   key={round.id}
@@ -122,7 +131,7 @@ export function RoundsTable({
                     isCurrent && "bg-blue-100/50 dark:bg-blue-900/40"
                   )}
                 >
-                  <TableCell className="font-medium text-center sticky left-0 z-10 bg-inherit">
+                  <TableCell className={cn("font-medium text-center sticky left-0 z-10", stickyCellBgClass)}>
                     {round.id}
                   </TableCell>
                   {players.map((player) => (
