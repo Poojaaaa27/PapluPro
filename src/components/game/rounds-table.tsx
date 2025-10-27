@@ -84,8 +84,8 @@ export function RoundsTable({ rounds, players, onStatusChange, isOrganizer }: Ro
                 <TableRow 
                   key={round.id}
                   className={cn(
-                    status === 'completed' && 'bg-green-200/60 dark:bg-green-900/40',
-                    isCurrent && 'bg-blue-200/60 dark:bg-blue-900/40'
+                    status === 'completed' && 'bg-green-100 dark:bg-green-900/60',
+                    isCurrent && 'bg-blue-100 dark:bg-blue-900/60'
                   )}
                 >
                   <TableCell className="font-medium text-center align-middle">{round.id}</TableCell>
