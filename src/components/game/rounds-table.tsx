@@ -14,7 +14,6 @@ import { PlayerStatusPopover } from "./player-status-popover";
 import { getStatusString, cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { useGame } from "@/hooks/use-game";
-import { PlusCircle } from "lucide-react";
 
 interface RoundsTableProps {
   rounds: GameRound[];
@@ -88,67 +87,56 @@ export function RoundsTable({
   );
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-md border relative max-h-[70vh] overflow-auto">
-        <Table className="w-full border-collapse min-w-[600px]">
-           <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
-            <TableRow>
-              <TableHead className="w-[150px] text-center sticky left-0 bg-background/95 z-20 font-headline text-lg">
-                Round
+    <div className="rounded-md border relative max-h-[70vh] overflow-auto">
+      <Table className="w-full border-collapse min-w-[600px]">
+        <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
+          <TableRow>
+            <TableHead className="w-[150px] text-center sticky left-0 bg-inherit z-20 font-headline text-lg">
+              Round
+            </TableHead>
+            {players.map((player) => (
+              <TableHead key={player.id} className="text-center font-headline text-lg font-bold bg-inherit">
+                {player.name}
               </TableHead>
-              {players.map((player) => (
-                <TableHead key={player.id} className="text-center font-headline text-lg font-bold">
-                  {player.name}
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rounds.map((round, index) => {
-              const status = getRoundStatus(round);
-              const isCurrent =
-                index === currentRoundIndex && currentRoundIndex !== -1;
-              
-              const rowBgClass = isCurrent
-                ? "bg-blue-100/50 dark:bg-blue-900/40"
-                : status === "completed"
-                ? "bg-green-100/50 dark:bg-green-900/40"
-                : "bg-background";
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rounds.map((round, index) => {
+            const status = getRoundStatus(round);
+            const isCurrent =
+              index === currentRoundIndex && currentRoundIndex !== -1;
+            
+            const rowBgClass = isCurrent
+              ? "bg-blue-100/50 dark:bg-blue-900/40"
+              : status === "completed"
+              ? "bg-green-100/50 dark:bg-green-900/40"
+              : "";
 
-              return (
-                <TableRow
-                  key={round.id}
-                  className={cn(rowBgClass)}
-                >
-                  <TableCell className="w-[150px] font-medium text-center sticky left-0 z-20" style={{backgroundColor: 'inherit'}}>
-                    {round.id}
+            return (
+              <TableRow
+                key={round.id}
+                className={cn(rowBgClass)}
+              >
+                <TableCell className="w-[150px] font-medium text-center sticky left-0 z-20 bg-inherit">
+                  {round.id}
+                </TableCell>
+                {players.map((player) => (
+                  <TableCell key={player.id} className="p-1 text-center">
+                    <PlayerStatusCell
+                      roundId={round.id}
+                      playerId={player.id}
+                      status={round.playerStatus[player.id]}
+                      onStatusChange={onStatusChange}
+                      isOrganizer={isOrganizer}
+                    />
                   </TableCell>
-                  {players.map((player) => (
-                    <TableCell key={player.id} className="p-1 text-center">
-                      <PlayerStatusCell
-                        roundId={round.id}
-                        playerId={player.id}
-                        status={round.playerStatus[player.id]}
-                        onStatusChange={onStatusChange}
-                        isOrganizer={isOrganizer}
-                      />
-                    </TableCell>
-                  ))}
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
-
-      {isOrganizer && (
-        <div className="flex justify-center">
-          <Button onClick={addRound} variant="outline">
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Add Round
-          </Button>
-        </div>
-      )}
+                ))}
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
     </div>
   );
 }
