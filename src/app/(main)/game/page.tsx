@@ -32,21 +32,26 @@ export default function GamePage() {
 
   const roundErrors = useMemo(() => {
     const errors: Record<number, string> = {};
-    if (!gameDetails.is3CardGame) return errors;
+    if (!gameDetails.is3CardGame || players.length === 0) return errors;
 
     for (const round of rounds) {
-        // We only validate completed rounds. A round is completed if it has entries.
-        const isRoundCompleted = Object.values(round.playerStatus).some(
-            (s) => s.outcome !== 'Playing' || s.is3C || s.papluCount > 0 || s.points !== null
-        );
-        
+        // --- Paplu validation (real-time) ---
         const papluCount = Object.values(round.playerStatus).reduce((acc, s) => acc + s.papluCount, 0);
         if (papluCount > 3) {
             errors[round.id] = `Max 3 Paplus allowed. Found: ${papluCount}.`;
             continue; // Show first error for the round
         }
 
-        if (isRoundCompleted) {
+        // --- Winner validation (on round completion) ---
+        // A round is complete if every player has a status other than the initial default.
+        const isRoundFullyEntered = players.every(player => {
+            const status = round.playerStatus[player.id];
+            if (!status) return false;
+            // A player's status is entered if their outcome is not 'Playing' OR if it is 'Playing' but they have points.
+            return status.outcome !== 'Playing' || (status.points !== null && status.points !== 0);
+        });
+
+        if (isRoundFullyEntered) {
             const winnerCount = Object.values(round.playerStatus).filter(s => s.outcome === 'Winner').length;
             if (winnerCount !== 1) {
                 errors[round.id] = `Must have exactly one winner. Found: ${winnerCount}.`;
@@ -54,7 +59,7 @@ export default function GamePage() {
         }
     }
     return errors;
-  }, [rounds, gameDetails.is3CardGame]);
+  }, [rounds, gameDetails.is3CardGame, players]);
 
   const hasErrors = Object.keys(roundErrors).length > 0;
 
