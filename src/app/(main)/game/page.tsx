@@ -36,7 +36,7 @@ export default function GamePage() {
 
     for (const round of rounds) {
         // --- Paplu validation (real-time) ---
-        const papluCount = Object.values(round.playerStatus).reduce((acc, s) => acc + s.papluCount, 0);
+        const papluCount = Object.values(round.playerStatus).reduce((acc, s) => acc + (s?.papluCount || 0), 0);
         if (papluCount > 3) {
             errors[round.id] = `Max 3 Paplus allowed. Found: ${papluCount}.`;
             continue; // Show first error for the round
@@ -47,12 +47,13 @@ export default function GamePage() {
         const isRoundFullyEntered = players.every(player => {
             const status = round.playerStatus[player.id];
             if (!status) return false;
-            // A player's status is entered if their outcome is not 'Playing' OR if it is 'Playing' but they have points.
-            return status.outcome !== 'Playing' || (status.points !== null && status.points !== 0);
+            // A player's status is considered entered if it's not the default "Playing" with no points/bonuses.
+            const isDefaultPlaying = status.outcome === 'Playing' && status.points === null && !status.is3C && status.papluCount === 0 && !status.isGate;
+            return !isDefaultPlaying;
         });
 
         if (isRoundFullyEntered) {
-            const winnerCount = Object.values(round.playerStatus).filter(s => s.outcome === 'Winner').length;
+            const winnerCount = Object.values(round.playerStatus).filter(s => s?.outcome === 'Winner').length;
             if (winnerCount !== 1) {
                 errors[round.id] = `Must have exactly one winner. Found: ${winnerCount}.`;
             }
