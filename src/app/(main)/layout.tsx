@@ -10,52 +10,6 @@ import { GameProvider } from '@/contexts/game-provider';
 import { RulesProvider } from '@/contexts/rules-provider';
 import { HistoryProvider } from '@/contexts/history-provider';
 import { TeamsProvider } from '@/contexts/teams-provider';
-import { FirebaseClientProvider, useUser } from '@/firebase';
-
-function MainAppContent({ children }: { children: React.ReactNode }) {
-  // We use useUser from our core firebase hook here to get the definitive auth state
-  const { user, isUserLoading } = useUser();
-  const { isAuthenticated } = useAuth(); // We still use this for the initial check logic
-
-  if (isUserLoading || !isAuthenticated || !user) {
-     return (
-      <div className="min-h-screen w-full flex flex-col">
-        <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="container flex h-16 max-w-screen-2xl items-center justify-between">
-                <Skeleton className="h-6 w-24" />
-                <Skeleton className="h-10 w-10 rounded-full" />
-            </div>
-        </header>
-        <main className="flex-1 container max-w-screen-2xl p-4 md:p-8">
-            <Skeleton className="h-48 w-full" />
-            <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <Skeleton className="h-24 w-full" />
-                <Skeleton className="h-24 w-full" />
-                <Skeleton className="h-24 w-full" />
-            </div>
-        </main>
-      </div>
-    );
-  }
-  
-  // These providers depend on an authenticated user, so we only render them
-  // once we are sure the user is logged in.
-  return (
-    <TeamsProvider>
-      <GameProvider>
-        <HistoryProvider>
-          <div className="relative flex min-h-screen w-full flex-col items-center">
-            <Header />
-            <main className="flex-1 w-full container max-w-screen-2xl">
-                {children}
-            </main>
-          </div>
-        </HistoryProvider>
-      </GameProvider>
-    </TeamsProvider>
-  );
-}
-
 
 export default function MainLayout({
   children,
@@ -92,12 +46,20 @@ export default function MainLayout({
     );
   }
 
-  // FirebaseClientProvider and RulesProvider do not depend on the user, so they can be at the top level.
   return (
-    <FirebaseClientProvider>
-      <RulesProvider>
-        <MainAppContent>{children}</MainAppContent>
-      </RulesProvider>
-    </FirebaseClientProvider>
+    <RulesProvider>
+      <TeamsProvider>
+        <GameProvider>
+          <HistoryProvider>
+            <div className="relative flex min-h-screen w-full flex-col items-center">
+              <Header />
+              <main className="flex-1 w-full container max-w-screen-2xl">
+                  {children}
+              </main>
+            </div>
+          </HistoryProvider>
+        </GameProvider>
+      </TeamsProvider>
+    </RulesProvider>
   );
 }

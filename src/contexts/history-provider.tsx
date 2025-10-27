@@ -1,14 +1,14 @@
 
 "use client";
 
-import React, { createContext, useState, useEffect, ReactNode, useContext } from "react";
+import React, { createContext, useState, useEffect, ReactNode } from "react";
 import type { GameSession } from "@/lib/types";
 import { useAuth } from "@/hooks/use-auth";
-import { collection, onSnapshot, addDoc, deleteDoc, doc, getFirestore, query, where } from "firebase/firestore";
-import { useFirebase } from "@/firebase";
-import { addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
-import { FirestorePermissionError } from "@/firebase/errors";
-import { errorEmitter } from "@/firebase/error-emitter";
+
+
+const MOCK_HISTORY: GameSession[] = [
+  // ... mock data if you had any
+];
 
 interface HistoryContextType {
   gameHistory: GameSession[];
@@ -22,54 +22,48 @@ export const HistoryContext = createContext<HistoryContextType | undefined>(unde
 export function HistoryProvider({ children }: { children: ReactNode }) {
   const [gameHistory, setGameHistory] = useState<GameSession[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
-  const { firestore } = useFirebase();
+  const { user } = useAuth(); // Used to key localStorage data
+
+  const getStorageKey = () => `paplu-pro-history-${user?.id || 'default'}`;
 
   useEffect(() => {
-    if (!firestore || !user) {
-      setLoading(false);
-      setGameHistory([]);
-      return;
-    };
-    
     setLoading(true);
-    const historyCollectionRef = collection(firestore, "gameSessions");
-    
-    const unsubscribe = onSnapshot(historyCollectionRef, (snapshot) => {
-      const history: GameSession[] = [];
-      snapshot.forEach(doc => {
-        history.push({ id: doc.id, ...doc.data() } as GameSession);
-      });
-      // sort by date ascending
-      history.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-      setGameHistory(history);
-      setLoading(false);
-    }, (err) => {
-      const contextualError = new FirestorePermissionError({
-        path: historyCollectionRef.path,
-        operation: 'list',
-      });
-      errorEmitter.emit('permission-error', contextualError);
-      setLoading(false);
-    });
+    if (user) {
+        try {
+            const storedHistory = localStorage.getItem(getStorageKey());
+            if (storedHistory) {
+                setGameHistory(JSON.parse(storedHistory));
+            } else {
+                setGameHistory(MOCK_HISTORY); // or an empty array
+            }
+        } catch (error) {
+            console.error("Failed to parse history from localStorage", error);
+            setGameHistory(MOCK_HISTORY); // or an empty array
+        }
+    }
+    setLoading(false);
+  }, [user]);
 
-    return () => unsubscribe();
-
-  }, [firestore, user]);
-
+  useEffect(() => {
+    if (user && !loading) {
+        try {
+            localStorage.setItem(getStorageKey(), JSON.stringify(gameHistory));
+        } catch (error) {
+            console.error("Failed to save history to localStorage", error);
+        }
+    }
+  }, [gameHistory, user, loading]);
 
   const addGameSession = (session: Omit<GameSession, 'id'>) => {
-    if (!firestore) return;
-    const historyCollectionRef = collection(firestore, "gameSessions");
-    // Use the non-blocking helper which will handle permission errors
-    addDocumentNonBlocking(historyCollectionRef, session);
+    const newSession: GameSession = {
+      ...session,
+      id: `${Date.now()}-${Math.random()}`,
+    };
+    setGameHistory(prevHistory => [...prevHistory, newSession]);
   };
 
   const deleteGameSession = (sessionId: string) => {
-    if (!firestore) return;
-    const gameDocRef = doc(firestore, "gameSessions", sessionId);
-    // Use the non-blocking helper which will handle permission errors
-    deleteDocumentNonBlocking(gameDocRef);
+    setGameHistory(prevHistory => prevHistory.filter(session => session.id !== sessionId));
   };
 
   const value = {

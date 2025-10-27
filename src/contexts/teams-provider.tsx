@@ -1,14 +1,22 @@
 
 "use client";
 
-import React, { createContext, useState, useEffect, ReactNode, useContext } from "react";
-import type { Team, Player } from "@/lib/types";
+import React, { createContext, useState, useEffect, ReactNode } from "react";
+import type { Team } from "@/lib/types";
 import { useAuth } from "@/hooks/use-auth";
-import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getFirestore } from "firebase/firestore";
-import { useFirebase } from "@/firebase";
-import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
-import { FirestorePermissionError } from "@/firebase/errors";
-import { errorEmitter } from "@/firebase/error-emitter";
+
+const MOCK_TEAMS: Team[] = [
+    { 
+        id: '1', 
+        name: 'The Sharks', 
+        players: [{id: '1', name: 'Alice'}, {id: '2', name: 'Bob'}] 
+    },
+    { 
+        id: '2', 
+        name: 'The Jets', 
+        players: [{id: '3', name: 'Charlie'}, {id: '4', name: 'Diana'}] 
+    },
+];
 
 interface TeamsContextType {
   teams: Team[];
@@ -25,54 +33,52 @@ export function TeamsProvider({ children }: { children: ReactNode }) {
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-  const { firestore } = useFirebase();
-
+  
+  const getStorageKey = () => `paplu-pro-teams-${user?.id || 'default'}`;
 
   useEffect(() => {
-    if (!firestore || !user) {
-        setLoading(false);
-        setTeams([]);
-        return;
-    };
+    if (user) {
+        try {
+            const storedTeams = localStorage.getItem(getStorageKey());
+            if (storedTeams) {
+                setTeams(JSON.parse(storedTeams));
+            } else {
+                setTeams(MOCK_TEAMS);
+            }
+        } catch (error) {
+            console.error("Failed to parse teams from localStorage", error);
+            setTeams(MOCK_TEAMS);
+        } finally {
+            setLoading(false);
+        }
+    }
+  }, [user]);
 
-    setLoading(true);
-    const teamsCollectionRef = collection(firestore, "teams");
-
-    const unsubscribe = onSnapshot(teamsCollectionRef, (snapshot) => {
-        const teamsData: Team[] = [];
-        snapshot.forEach(doc => {
-            teamsData.push({ id: doc.id, ...doc.data() } as Team);
-        });
-        setTeams(teamsData);
-        setLoading(false);
-    }, (err) => {
-        const contextualError = new FirestorePermissionError({
-            path: teamsCollectionRef.path,
-            operation: 'list',
-        });
-        errorEmitter.emit('permission-error', contextualError);
-        setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [firestore, user]);
+  useEffect(() => {
+    if (user && !loading) {
+        try {
+            localStorage.setItem(getStorageKey(), JSON.stringify(teams));
+        } catch (error) {
+            console.error("Failed to save teams to localStorage", error);
+        }
+    }
+  }, [teams, user, loading]);
 
   const addTeam = (teamData: Omit<Team, 'id'>) => {
-    if (!firestore) return;
-    const teamsCollectionRef = collection(firestore, "teams");
-    addDocumentNonBlocking(teamsCollectionRef, teamData);
+    const newTeam = { ...teamData, id: `${Date.now()}-${Math.random()}` };
+    setTeams(prevTeams => [...prevTeams, newTeam]);
   };
 
   const updateTeam = (teamId: string, updatedData: Partial<Omit<Team, 'id'>>) => {
-    if (!firestore) return;
-    const teamDocRef = doc(firestore, "teams", teamId);
-    updateDocumentNonBlocking(teamDocRef, updatedData);
+    setTeams(prevTeams => 
+      prevTeams.map(team => 
+        team.id === teamId ? { ...team, ...updatedData } : team
+      )
+    );
   };
 
   const deleteTeam = (teamId: string) => {
-    if (!firestore) return;
-    const teamDocRef = doc(firestore, "teams", teamId);
-    deleteDocumentNonBlocking(teamDocRef);
+    setTeams(prevTeams => prevTeams.filter(team => team.id !== teamId));
   };
   
   const getTeamById = (teamId: string) => {

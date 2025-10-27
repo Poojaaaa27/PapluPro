@@ -1,66 +1,41 @@
 /**
- * @file Firestore Security Rules
- * @description This ruleset defines access control for the Paplu Pro application.
+ * @fileoverview Firestore Security Rules for Paplu Pro.
  *
  * Core Philosophy:
- *   The rules prioritize security by default. Only authenticated users can create game sessions and teams.
- *   Unauthenticated users have no access. Further access control can be refined by using the 'role' field in user objects.
+ * This ruleset prioritizes a completely open access model. All reads and writes are allowed for all users, regardless of authentication status.
  *
  * Data Structure:
- *   - /gameSessions/{gameSessionId}: Stores game session data.
- *   - /teams/{teamId}: Stores team data.
+ * Data is stored in two top-level collections: `/gameSessions/{gameSessionId}` and `/teams/{teamId}`.
  *
  * Key Security Decisions:
- *   - Only authenticated users can create game sessions and teams.
- *   - No listing of any collections is allowed.
- *   - Validation is limited to checking the authentication state of the user and the existence of documents before updates or deletes.
+ * Due to the "reverse this firebase thing" instruction, all security measures have been removed, effectively making the database public and writable by anyone.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to the /gameSessions collection.
+     * @description Allows any user to read or write game session data.
      * @path /gameSessions/{gameSessionId}
-     * @allow (create) Authenticated user can create a game session.
-     * @deny (create) Unauthenticated user cannot create a game session.
-     * @allow (get) Not allowed.
-     * @deny (get) Not allowed.
-     * @principle Only authenticated users can create game sessions.
+     * @allow (get, list) Any user can read game session data.
+     * @allow (create, update, delete) Any user can write game session data.
+     * @principle Public access for all operations.
      */
     match /gameSessions/{gameSessionId} {
-      allow get: if false;
-      allow list: if false;
-      allow create: if isSignedIn();
-      allow update: if false;
-      allow delete: if false;
+      allow get, list: if true;
+      allow create, update, delete: if true;
     }
 
     /**
-     * @description Controls access to the /teams collection.
+     * @description Allows any user to read or write team data.
      * @path /teams/{teamId}
-     * @allow (create) Authenticated user can create a team.
-     * @deny (create) Unauthenticated user cannot create a team.
-     * @allow (get) Not allowed.
-     * @deny (get) Not allowed.
-     * @principle Only authenticated users can create teams.
+     * @allow (get, list) Any user can read team data.
+     * @allow (create, update, delete) Any user can write team data.
+     * @principle Public access for all operations.
      */
     match /teams/{teamId} {
-      allow get: if false;
-      allow list: if false;
-      allow create: if isSignedIn();
-      allow update: if false;
-      allow delete: if false;
-    }
-
-    // ---- Helper Functions ----
-
-    /**
-     * @description Checks if the user is signed in.
-     * @return {boolean} True if the user is signed in, false otherwise.
-     */
-    function isSignedIn() {
-      return request.auth != null;
+      allow get, list: if true;
+      allow create, update, delete: if true;
     }
   }
 }

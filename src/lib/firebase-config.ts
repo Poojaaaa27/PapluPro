@@ -1,3 +1,2 @@
-// Your web app's Firebase configuration is automatically provided by Firebase App Hosting.
-// You do not need to add it here.
+// This file is intentionally blank after reverting from Firebase.
 export const firebaseConfig = {};

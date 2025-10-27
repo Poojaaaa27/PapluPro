@@ -1,7 +1,7 @@
 
 "use client";
 
-import type { User, UserRole } from "@/lib/types";
+import type { User } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import React, { createContext, useState, useEffect, ReactNode } from "react";
 
