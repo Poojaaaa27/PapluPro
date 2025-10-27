@@ -65,7 +65,7 @@ export function RoundsTable({ rounds, players, onStatusChange, isOrganizer }: Ro
     <div className="space-y-4">
       <div className="rounded-md border max-h-[70vh] overflow-y-auto relative">
         <Table>
-          <TableHeader className="sticky top-0 z-10 bg-card">
+          <TableHeader className="sticky top-0 z-10">
             <TableRow className="bg-muted/80 hover:bg-muted/80 backdrop-blur-sm">
               <TableHead className="w-[80px] font-headline text-center">Round</TableHead>
               {players.map((player) => (
