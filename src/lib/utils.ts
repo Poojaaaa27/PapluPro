@@ -24,7 +24,7 @@ export function getStatusString(status: PlayerStatus): string {
             postRoundParts.push('D');
             break;
         case 'Playing':
-            if(status.points !== null && status.points > 0) postRoundParts.push(`${status.points}`);
+            if(status.points !== null) postRoundParts.push(`${status.points}`);
             break;
         case 'Full':
             postRoundParts.push('F');
