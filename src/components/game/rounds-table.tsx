@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -90,22 +91,6 @@ export function RoundsTable({
     <div className="space-y-4">
       <div className="rounded-md border relative max-h-[70vh] overflow-auto">
         <Table className="w-full border-collapse min-w-[600px]">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[80px] font-headline text-lg font-bold text-center sticky left-0 top-0 z-40 bg-background/95 backdrop-blur-sm shadow-sm">
-                Round
-              </TableHead>
-              {players.map((player) => (
-                <TableHead
-                  key={player.id}
-                  className="font-headline text-lg font-bold text-center sticky top-0 z-20 bg-background/95 backdrop-blur-sm shadow-sm"
-                >
-                  {player.name}
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-
           <TableBody>
             {rounds.map((round, index) => {
               const status = getRoundStatus(round);
@@ -117,24 +102,17 @@ export function RoundsTable({
                 : status === "completed"
                 ? "bg-green-100/50 dark:bg-green-900/40"
                 : "";
-              
-              const stickyCellBgClass = isCurrent
-                ? "bg-blue-100/90 dark:bg-blue-900/90 backdrop-blur-sm"
-                : status === "completed"
-                ? "bg-green-100/90 dark:bg-green-900/90 backdrop-blur-sm"
-                : "bg-background/95 backdrop-blur-sm";
-
 
               return (
                 <TableRow
                   key={round.id}
                   className={cn(rowBgClass)}
                 >
-                  <TableCell className={cn("font-medium text-center sticky left-0 z-10", stickyCellBgClass)}>
+                  <TableCell className="w-[16.66%] font-medium text-center sticky left-0 bg-background/95">
                     {round.id}
                   </TableCell>
                   {players.map((player) => (
-                    <TableCell key={player.id} className="p-1 text-center">
+                    <TableCell key={player.id} className="p-1 text-center w-[16.66%]">
                       <PlayerStatusCell
                         roundId={round.id}
                         playerId={player.id}
