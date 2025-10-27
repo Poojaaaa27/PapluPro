@@ -8,11 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { useGame } from "@/hooks/use-game";
-import { Save, Trash2, PlusCircle, AlertCircle } from "lucide-react";
+import { Save, Trash2, PlusCircle } from "lucide-react";
 import { useHistory } from "@/hooks/use-history";
 import { useToast } from "@/hooks/use-toast";
 import type { GameSession } from "@/lib/types";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function GamePage() {
   const { user } = useAuth();
@@ -31,12 +30,39 @@ export default function GamePage() {
   
   const isOrganizer = user?.role === 'organizer';
 
+  const roundErrors = useMemo(() => {
+    const errors: Record<number, string> = {};
+    if (!gameDetails.is3CardGame) return errors;
+
+    for (const round of rounds) {
+        // We only validate completed rounds. A round is completed if it has entries.
+        const isRoundCompleted = Object.values(round.playerStatus).some(
+            (s) => s.outcome !== 'Playing' || s.is3C || s.papluCount > 0 || s.points !== null
+        );
+        if (!isRoundCompleted) continue;
+
+        const winnerCount = Object.values(round.playerStatus).filter(s => s.outcome === 'Winner').length;
+        const papluCount = Object.values(round.playerStatus).reduce((acc, s) => acc + s.papluCount, 0);
+
+        if (winnerCount !== 1) {
+            errors[round.id] = `Must have exactly one winner. Found: ${winnerCount}.`;
+            continue; // Show first error for the round
+        }
+        if (papluCount > 3) {
+            errors[round.id] = `Max 3 Paplus allowed. Found: ${papluCount}.`;
+        }
+    }
+    return errors;
+  }, [rounds, gameDetails.is3CardGame]);
+
+  const hasErrors = Object.keys(roundErrors).length > 0;
+
   const handleSaveGame = () => {
-    if (validationError) {
+    if (hasErrors) {
        toast({
         variant: "destructive",
         title: "Cannot Save Game",
-        description: `Please fix the error before saving: ${validationError}`,
+        description: `Please fix the errors in the rounds before saving.`,
       });
       return;
     }
@@ -54,44 +80,12 @@ export default function GamePage() {
     });
   };
 
-  const getRoundStatus = (round: GameSession['rounds'][0]) => {
-    const hasWinner = Object.values(round.playerStatus).some(
-      (status) => status.outcome === "Winner"
-    );
-    const hasScores = Object.values(round.scores).some((score) => score !== 0);
-    return hasWinner || hasScores ? "completed" : "pending";
-  };
-
-  const validationError = useMemo(() => {
-    if (!gameDetails.is3CardGame) return null;
-
-    for (const round of rounds) {
-        // We only validate completed rounds. A round is completed if it has entries.
-        const isRoundCompleted = Object.values(round.playerStatus).some(
-            (s) => s.outcome !== 'Playing' || s.is3C || s.papluCount > 0 || s.points !== null
-        );
-        if (!isRoundCompleted) continue;
-
-        const winnerCount = Object.values(round.playerStatus).filter(s => s.outcome === 'Winner').length;
-        const papluCount = Object.values(round.playerStatus).reduce((acc, s) => acc + s.papluCount, 0);
-
-        if (winnerCount !== 1) {
-            return `Round ${round.id}: There must be exactly one winner (Declare). Found: ${winnerCount}.`;
-        }
-        if (papluCount > 3) {
-            return `Round ${round.id}: A maximum of 3 Paplus are allowed per round. Found: ${papluCount}.`;
-        }
-    }
-
-    return null;
-  }, [rounds, gameDetails.is3CardGame]);
-
   const handleAddRound = () => {
-    if (validationError) {
+    if (hasErrors) {
       toast({
         variant: "destructive",
         title: "Invalid Round",
-        description: `Cannot add a new round until the error is fixed: ${validationError}`,
+        description: `Cannot add a new round until all errors are fixed.`,
       });
       return;
     }
@@ -117,14 +111,6 @@ export default function GamePage() {
           </div>
         )}
       </div>
-      
-      {validationError && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Validation Error</AlertTitle>
-          <AlertDescription>{validationError}</AlertDescription>
-        </Alert>
-      )}
 
       <Tabs defaultValue="rounds" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
@@ -137,10 +123,11 @@ export default function GamePage() {
                 rounds={rounds}
                 onStatusChange={handleStatusChange}
                 isOrganizer={isOrganizer}
+                roundErrors={roundErrors}
             />
             {isOrganizer && (
               <div className="flex justify-center mt-4">
-                <Button onClick={handleAddRound} variant="outline" disabled={!!validationError}>
+                <Button onClick={handleAddRound} variant="outline" disabled={hasErrors}>
                   <PlusCircle />
                   Add Round
                 </Button>

@@ -13,7 +13,7 @@ import type { GameRound, Player, PlayerStatus } from "@/lib/types";
 import { PlayerStatusPopover } from "./player-status-popover";
 import { getStatusString, cn } from "@/lib/utils";
 import { Button } from "../ui/button";
-import { useGame } from "@/hooks/use-game";
+import { AlertCircle } from "lucide-react";
 
 interface RoundsTableProps {
   rounds: GameRound[];
@@ -24,6 +24,7 @@ interface RoundsTableProps {
     newStatus: PlayerStatus
   ) => void;
   isOrganizer: boolean;
+  roundErrors?: Record<number, string>;
 }
 
 function PlayerStatusCell({
@@ -71,9 +72,8 @@ export function RoundsTable({
   players,
   onStatusChange,
   isOrganizer,
+  roundErrors = {},
 }: RoundsTableProps) {
-  const { addRound } = useGame();
-
   const getRoundStatus = (round: GameRound) => {
     const hasWinner = Object.values(round.playerStatus).some(
       (status) => status.outcome === "Winner"
@@ -89,13 +89,13 @@ export function RoundsTable({
   return (
     <div className="rounded-md border relative max-h-[70vh] overflow-auto">
       <Table className="w-full border-collapse min-w-[600px]">
-        <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
+        <TableHeader>
           <TableRow>
-            <TableHead className="w-[150px] text-center sticky left-0 bg-inherit z-20 font-headline text-lg">
+            <TableHead className="w-[150px] text-center sticky left-0 top-0 z-30 bg-background font-headline text-lg border-b border-r">
               Round
             </TableHead>
             {players.map((player) => (
-              <TableHead key={player.id} className="text-center font-headline text-lg font-bold bg-inherit">
+              <TableHead key={player.id} className="text-center font-headline text-lg font-bold sticky top-0 z-20 bg-background border-b">
                 {player.name}
               </TableHead>
             ))}
@@ -107,7 +107,11 @@ export function RoundsTable({
             const isCurrent =
               index === currentRoundIndex && currentRoundIndex !== -1;
             
-            const rowBgClass = isCurrent
+            const hasError = !!roundErrors[round.id];
+
+            const rowBgClass = hasError
+              ? "bg-destructive/10"
+              : isCurrent
               ? "bg-blue-100/50 dark:bg-blue-900/40"
               : status === "completed"
               ? "bg-green-100/50 dark:bg-green-900/40"
@@ -116,10 +120,18 @@ export function RoundsTable({
             return (
               <TableRow
                 key={round.id}
-                className={cn(rowBgClass)}
+                className={cn(rowBgClass, "hover:bg-muted/50")}
               >
-                <TableCell className="w-[150px] font-medium text-center sticky left-0 z-20 bg-inherit">
-                  {round.id}
+                <TableCell className="w-[150px] font-medium text-center sticky left-0 z-20 bg-inherit border-r">
+                  <div className="flex flex-col items-center justify-center">
+                    <span className="font-bold text-lg">{round.id}</span>
+                     {hasError && (
+                        <div className="flex items-center gap-1 text-destructive text-xs mt-1 text-center">
+                            <AlertCircle className="h-3 w-3 shrink-0" />
+                            <p>{roundErrors[round.id]}</p>
+                        </div>
+                    )}
+                  </div>
                 </TableCell>
                 {players.map((player) => (
                   <TableCell key={player.id} className="p-1 text-center">
