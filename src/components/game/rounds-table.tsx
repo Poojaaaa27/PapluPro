@@ -1,4 +1,3 @@
-
 "use client";
 
 import {
@@ -99,7 +98,7 @@ export function RoundsTable({
               {players.map((player) => (
                 <TableHead
                   key={player.id}
-                  className="font-headline text-center sticky top-0 z-20 bg-background/95 backdrop-blur-sm shadow-sm"
+                  className="font-headline text-lg font-bold text-center sticky top-0 z-20 bg-background/95 backdrop-blur-sm shadow-sm"
                 >
                   {player.name}
                 </TableHead>
@@ -115,11 +114,12 @@ export function RoundsTable({
 
               // Determine the background color for the sticky cell
               let stickyCellBgClass = "bg-background/95 backdrop-blur-sm";
-              if (isCurrent) {
-                  stickyCellBgClass = "bg-blue-100/80 dark:bg-blue-900/80 backdrop-blur-sm";
-              } else if (status === 'completed') {
+               if (status === 'completed') {
                   stickyCellBgClass = "bg-green-100/80 dark:bg-green-900/80 backdrop-blur-sm";
               }
+              if (isCurrent) {
+                  stickyCellBgClass = "bg-blue-100/80 dark:bg-blue-900/80 backdrop-blur-sm";
+              } 
 
 
               return (
