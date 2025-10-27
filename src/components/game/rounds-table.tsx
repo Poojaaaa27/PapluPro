@@ -51,9 +51,13 @@ export function RoundsTable({ rounds, players, onStatusChange, isOrganizer }: Ro
   const { addRound } = useGame();
 
   const getRoundStatus = (round: GameRound) => {
+    const hasWinner = Object.values(round.playerStatus).some(
+      (status) => status.outcome === 'Winner'
+    );
     const hasScores = Object.values(round.scores).some(score => score !== 0);
-    return hasScores ? 'completed' : 'pending';
+    return hasWinner || hasScores ? 'completed' : 'pending';
   };
+  
 
   const currentRoundIndex = rounds.findIndex(r => getRoundStatus(r) === 'pending');
 
@@ -74,14 +78,14 @@ export function RoundsTable({ rounds, players, onStatusChange, isOrganizer }: Ro
           <TableBody>
             {rounds.map((round, index) => {
               const status = getRoundStatus(round);
-              const isCurrent = index === currentRoundIndex;
+              const isCurrent = index === currentRoundIndex && currentRoundIndex !== -1;
 
               return (
                 <TableRow 
                   key={round.id}
                   className={cn(
-                    status === 'completed' && 'bg-green-100/50 dark:bg-green-900/20',
-                    isCurrent && 'bg-blue-100/50 dark:bg-blue-900/20'
+                    status === 'completed' && 'bg-green-200/60 dark:bg-green-900/40',
+                    isCurrent && 'bg-blue-200/60 dark:bg-blue-900/40'
                   )}
                 >
                   <TableCell className="font-medium text-center align-middle">{round.id}</TableCell>
