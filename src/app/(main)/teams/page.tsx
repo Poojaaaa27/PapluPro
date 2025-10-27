@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -82,7 +83,7 @@ export default function TeamsPage() {
                             <CardContent className="flex-grow">
                                 <ul className="space-y-2">
                                     {team.players.map(player => (
-                                        <li key={player.id} className="text-sm bg-muted/50 p-2 rounded-md">{player.name}</li>
+                                        <li key={player.id} className="text-base font-bold bg-muted/50 p-2 rounded-md">{player.name}</li>
                                     ))}
                                 </ul>
                             </CardContent>
