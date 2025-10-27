@@ -65,8 +65,8 @@ export function RoundsTable({ rounds, players, onStatusChange, isOrganizer }: Ro
     <div className="space-y-4">
       <div className="rounded-md border max-h-[70vh] overflow-y-auto relative">
         <Table>
-          <TableHeader className="sticky top-0 z-10">
-            <TableRow className="bg-muted/80 hover:bg-muted/80 backdrop-blur-sm">
+          <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <TableRow className="hover:bg-muted/50">
               <TableHead className="w-[80px] font-headline text-center">Round</TableHead>
               {players.map((player) => (
                 <TableHead key={player.id} className="font-headline text-center">
@@ -84,8 +84,8 @@ export function RoundsTable({ rounds, players, onStatusChange, isOrganizer }: Ro
                 <TableRow 
                   key={round.id}
                   className={cn(
-                    status === 'completed' && 'bg-green-200/50 dark:bg-green-900/40',
-                    isCurrent && 'bg-blue-200/50 dark:bg-blue-900/40'
+                    status === 'completed' && 'bg-green-100/50 dark:bg-green-900/40',
+                    isCurrent && 'bg-blue-100/50 dark:bg-blue-900/40'
                   )}
                 >
                   <TableCell className="font-medium text-center align-middle">{round.id}</TableCell>
