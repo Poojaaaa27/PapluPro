@@ -68,14 +68,6 @@ export default function GamePage() {
           <TabsTrigger value="setup" className="font-headline">Setup</TabsTrigger>
         </TabsList>
         <TabsContent value="rounds" className="mt-6">
-            <div className="flex w-full sticky top-0 bg-background z-10 py-2 border-b px-1">
-                <div className="w-[16.66%] font-headline text-lg font-bold text-center">Round</div>
-                 {players.map((player) => (
-                    <div key={player.id} className="w-[16.66%] font-headline text-lg font-bold text-center">
-                        {player.name}
-                    </div>
-                ))}
-            </div>
             <RoundsTable 
                 players={players} 
                 rounds={rounds}

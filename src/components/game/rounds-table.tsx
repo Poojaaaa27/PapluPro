@@ -91,6 +91,18 @@ export function RoundsTable({
     <div className="space-y-4">
       <div className="rounded-md border relative max-h-[70vh] overflow-auto">
         <Table className="w-full border-collapse min-w-[600px]">
+           <TableHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
+            <TableRow>
+              <TableHead className="w-[150px] text-center sticky left-0 bg-background/95 z-20 font-headline text-lg">
+                Round
+              </TableHead>
+              {players.map((player) => (
+                <TableHead key={player.id} className="text-center font-headline text-lg font-bold">
+                  {player.name}
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
           <TableBody>
             {rounds.map((round, index) => {
               const status = getRoundStatus(round);
@@ -108,11 +120,11 @@ export function RoundsTable({
                   key={round.id}
                   className={cn(rowBgClass)}
                 >
-                  <TableCell className="w-[16.66%] font-medium text-center sticky left-0 bg-background/95">
+                  <TableCell className="w-[150px] font-medium text-center sticky left-0 bg-background/95 z-20">
                     {round.id}
                   </TableCell>
                   {players.map((player) => (
-                    <TableCell key={player.id} className="p-1 text-center w-[16.66%]">
+                    <TableCell key={player.id} className="p-1 text-center">
                       <PlayerStatusCell
                         roundId={round.id}
                         playerId={player.id}
