@@ -44,7 +44,11 @@ export function RulesProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Only organizers can save rules
     if(isOrganizer) {
-        localStorage.setItem("paplu-pro-rules", JSON.stringify(rules));
+        try {
+            localStorage.setItem("paplu-pro-rules", JSON.stringify(rules));
+        } catch (error) {
+            console.error("Failed to save rules to localStorage", error);
+        }
     }
   }, [rules, isOrganizer]);
 

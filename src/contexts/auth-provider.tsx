@@ -36,12 +36,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = (userData: User) => {
     const userWithId = { ...userData, id: userData.name }; // Use name as a simple ID
-    localStorage.setItem("paplu-pro-user", JSON.stringify(userWithId));
+    try {
+      localStorage.setItem("paplu-pro-user", JSON.stringify(userWithId));
+    } catch (error) {
+        console.error("Failed to save user to localStorage", error);
+    }
     setUser(userWithId);
   };
 
   const logout = () => {
-    localStorage.removeItem("paplu-pro-user");
+    try {
+      localStorage.removeItem("paplu-pro-user");
+    } catch (error) {
+        console.error("Failed to remove user from localStorage", error);
+    }
     setUser(null);
     router.push("/");
   };
