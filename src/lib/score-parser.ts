@@ -78,7 +78,7 @@ export function calculateRoundScores(
                     break;
                 case 'Playing':
                     // Points are from the loser's hand, so they are a positive value.
-                    amountOwed = Math.abs(loserStatus.points) * rules.perPoint;
+                    amountOwed = Math.abs(loserStatus.points || 0) * rules.perPoint;
                     break;
             }
             

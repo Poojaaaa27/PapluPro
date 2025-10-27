@@ -20,7 +20,7 @@ const defaultStatus: PlayerStatus = {
     is3C: false,
     papluCount: 0,
     outcome: 'Playing',
-    points: 0,
+    points: null,
     isGate: false,
 }
 
@@ -116,8 +116,11 @@ export function PlayerStatusPopover({ children, status, onSave }: PlayerStatusPo
                         id="points-input"
                         type="number"
                         placeholder="e.g. 25"
-                        value={currentStatus.points}
-                        onChange={(e) => setCurrentStatus(s => ({...s, points: Number(e.target.value)}))}
+                        value={currentStatus.points === null ? '' : currentStatus.points}
+                        onChange={(e) => {
+                            const value = e.target.value;
+                            setCurrentStatus(s => ({ ...s, points: value === '' ? null : Number(value) }))
+                        }}
                         className="col-span-2 h-8"
                     />
                 </div>

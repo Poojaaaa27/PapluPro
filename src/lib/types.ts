@@ -25,7 +25,7 @@ export interface PlayerStatus {
   is3C: boolean;
   papluCount: PapluCount;
   outcome: RoundOutcome;
-  points: number;
+  points: number | null;
   isGate: boolean;
 }
 
