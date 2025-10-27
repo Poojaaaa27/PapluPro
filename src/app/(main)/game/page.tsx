@@ -39,17 +39,18 @@ export default function GamePage() {
         const isRoundCompleted = Object.values(round.playerStatus).some(
             (s) => s.outcome !== 'Playing' || s.is3C || s.papluCount > 0 || s.points !== null
         );
-        if (!isRoundCompleted) continue;
-
-        const winnerCount = Object.values(round.playerStatus).filter(s => s.outcome === 'Winner').length;
+        
         const papluCount = Object.values(round.playerStatus).reduce((acc, s) => acc + s.papluCount, 0);
-
-        if (winnerCount !== 1) {
-            errors[round.id] = `Must have exactly one winner. Found: ${winnerCount}.`;
-            continue; // Show first error for the round
-        }
         if (papluCount > 3) {
             errors[round.id] = `Max 3 Paplus allowed. Found: ${papluCount}.`;
+            continue; // Show first error for the round
+        }
+
+        if (isRoundCompleted) {
+            const winnerCount = Object.values(round.playerStatus).filter(s => s.outcome === 'Winner').length;
+            if (winnerCount !== 1) {
+                errors[round.id] = `Must have exactly one winner. Found: ${winnerCount}.`;
+            }
         }
     }
     return errors;
