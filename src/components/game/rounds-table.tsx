@@ -124,3 +124,4 @@ export function RoundsTable({ rounds, players, onStatusChange, isOrganizer }: Ro
     </div>
   );
 }
+
