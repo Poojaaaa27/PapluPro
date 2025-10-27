@@ -113,14 +113,14 @@ export function RoundsTable({
                 ? "bg-blue-100/50 dark:bg-blue-900/40"
                 : status === "completed"
                 ? "bg-green-100/50 dark:bg-green-900/40"
-                : "";
+                : "bg-background";
 
               return (
                 <TableRow
                   key={round.id}
                   className={cn(rowBgClass)}
                 >
-                  <TableCell className="w-[150px] font-medium text-center sticky left-0 bg-background/95 z-20">
+                  <TableCell className="w-[150px] font-medium text-center sticky left-0 z-20" style={{backgroundColor: 'inherit'}}>
                     {round.id}
                   </TableCell>
                   {players.map((player) => (
