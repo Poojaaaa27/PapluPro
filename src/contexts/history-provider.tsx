@@ -1,11 +1,14 @@
+
 "use client";
 
 import React, { createContext, useState, useEffect, ReactNode, useContext } from "react";
 import type { GameSession } from "@/lib/types";
 import { useAuth } from "@/hooks/use-auth";
-import { collection, onSnapshot, addDoc, deleteDoc, doc, getFirestore } from "firebase/firestore";
+import { collection, onSnapshot, addDoc, deleteDoc, doc, getFirestore, query, where } from "firebase/firestore";
 import { useFirebase } from "@/firebase";
 import { addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { FirestorePermissionError } from "@/firebase/errors";
+import { errorEmitter } from "@/firebase/error-emitter";
 
 interface HistoryContextType {
   gameHistory: GameSession[];
@@ -25,9 +28,11 @@ export function HistoryProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!firestore || !user) {
       setLoading(false);
+      setGameHistory([]);
       return;
     };
     
+    setLoading(true);
     const historyCollectionRef = collection(firestore, "gameSessions");
     
     const unsubscribe = onSnapshot(historyCollectionRef, (snapshot) => {
@@ -39,8 +44,12 @@ export function HistoryProvider({ children }: { children: ReactNode }) {
       history.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
       setGameHistory(history);
       setLoading(false);
-    }, (error) => {
-      console.error("Error fetching game history:", error);
+    }, (err) => {
+      const contextualError = new FirestorePermissionError({
+        path: historyCollectionRef.path,
+        operation: 'list',
+      });
+      errorEmitter.emit('permission-error', contextualError);
       setLoading(false);
     });
 
@@ -52,12 +61,14 @@ export function HistoryProvider({ children }: { children: ReactNode }) {
   const addGameSession = (session: Omit<GameSession, 'id'>) => {
     if (!firestore) return;
     const historyCollectionRef = collection(firestore, "gameSessions");
+    // Use the non-blocking helper which will handle permission errors
     addDocumentNonBlocking(historyCollectionRef, session);
   };
 
   const deleteGameSession = (sessionId: string) => {
     if (!firestore) return;
     const gameDocRef = doc(firestore, "gameSessions", sessionId);
+    // Use the non-blocking helper which will handle permission errors
     deleteDocumentNonBlocking(gameDocRef);
   };
 

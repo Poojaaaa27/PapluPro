@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useState, useEffect, ReactNode, useContext } from "react";
@@ -6,6 +7,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getFirestore } from "firebase/firestore";
 import { useFirebase } from "@/firebase";
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { FirestorePermissionError } from "@/firebase/errors";
+import { errorEmitter } from "@/firebase/error-emitter";
 
 interface TeamsContextType {
   teams: Team[];
@@ -28,9 +31,11 @@ export function TeamsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!firestore || !user) {
         setLoading(false);
+        setTeams([]);
         return;
     };
 
+    setLoading(true);
     const teamsCollectionRef = collection(firestore, "teams");
 
     const unsubscribe = onSnapshot(teamsCollectionRef, (snapshot) => {
@@ -40,8 +45,12 @@ export function TeamsProvider({ children }: { children: ReactNode }) {
         });
         setTeams(teamsData);
         setLoading(false);
-    }, (error) => {
-        console.error("Error fetching teams:", error);
+    }, (err) => {
+        const contextualError = new FirestorePermissionError({
+            path: teamsCollectionRef.path,
+            operation: 'list',
+        });
+        errorEmitter.emit('permission-error', contextualError);
         setLoading(false);
     });
 
