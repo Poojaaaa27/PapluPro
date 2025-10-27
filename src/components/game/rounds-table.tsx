@@ -13,6 +13,8 @@ import type { GameRound, Player, PlayerStatus } from "@/lib/types";
 import { PlayerStatusPopover } from "./player-status-popover";
 import { getStatusString } from "@/lib/utils";
 import { Button } from "../ui/button";
+import { useGame } from "@/hooks/use-game";
+import { PlusCircle } from "lucide-react";
 
 interface RoundsTableProps {
   rounds: GameRound[];
@@ -46,38 +48,50 @@ function PlayerStatusCell({ roundId, playerId, status, onStatusChange, isOrganiz
 }
 
 export function RoundsTable({ rounds, players, onStatusChange, isOrganizer }: RoundsTableProps) {
+  const { addRound } = useGame();
+
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-muted/50">
-            <TableHead className="w-[80px] font-headline text-center">Round</TableHead>
-            {players.map((player) => (
-              <TableHead key={player.id} className="font-headline text-center">
-                {player.name}
-              </TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rounds.map((round) => (
-            <TableRow key={round.id}>
-              <TableCell className="font-medium text-center align-middle">{round.id}</TableCell>
+    <div className="space-y-4">
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/50">
+              <TableHead className="w-[80px] font-headline text-center">Round</TableHead>
               {players.map((player) => (
-                <TableCell key={player.id} className="p-1">
-                   <PlayerStatusCell 
-                        roundId={round.id}
-                        playerId={player.id}
-                        status={round.playerStatus[player.id]}
-                        onStatusChange={onStatusChange}
-                        isOrganizer={isOrganizer}
-                   />
-                </TableCell>
+                <TableHead key={player.id} className="font-headline text-center">
+                  {player.name}
+                </TableHead>
               ))}
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {rounds.map((round) => (
+              <TableRow key={round.id}>
+                <TableCell className="font-medium text-center align-middle">{round.id}</TableCell>
+                {players.map((player) => (
+                  <TableCell key={player.id} className="p-1">
+                    <PlayerStatusCell 
+                          roundId={round.id}
+                          playerId={player.id}
+                          status={round.playerStatus[player.id]}
+                          onStatusChange={onStatusChange}
+                          isOrganizer={isOrganizer}
+                    />
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      {isOrganizer && (
+        <div className="flex justify-center">
+            <Button onClick={addRound} variant="outline">
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Add Round
+            </Button>
+        </div>
+      )}
     </div>
   );
 }

@@ -42,6 +42,7 @@ interface GameContextType {
   updatePlayers: (newPlayers: Player[]) => void;
   rounds: GameRound[];
   setRounds: React.Dispatch<React.SetStateAction<GameRound[]>>;
+  addRound: () => void;
   gameDetails: GameDetails;
   setGameDetails: React.Dispatch<React.SetStateAction<GameDetails>>;
   handleStatusChange: (roundId: number, playerId: string, newStatus: PlayerStatus) => void;
@@ -114,6 +115,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
     });
   }, [players, rules, gameDetails.is3CardGame]);
 
+  const addRound = () => {
+    setRounds(prevRounds => {
+        const newRoundId = prevRounds.length > 0 ? prevRounds[prevRounds.length - 1].id + 1 : 1;
+        const newRound: GameRound = {
+            id: newRoundId,
+            playerStatus: getDefaultPlayerStatuses(players),
+            scores: {},
+        };
+        return [...prevRounds, newRound];
+    })
+  }
+
   const resetGame = () => {
     setRounds(Array.from({ length: 15 }, (_, i) => ({
       id: i + 1,
@@ -141,6 +154,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     updatePlayers,
     rounds,
     setRounds,
+    addRound,
     gameDetails,
     setGameDetails,
     handleStatusChange,
