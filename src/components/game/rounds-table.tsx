@@ -103,8 +103,9 @@ export function RoundsTable({
         </TableHeader>
         <TableBody>
           {rounds.map((round) => {
-            const hasError = !!roundErrors[round.id];
             const isComplete = round.isComplete;
+            const hasError = !!roundErrors[round.id] && (isComplete || Object.values(round.playerStatus).some(s => s.outcome !== 'Playing' || s.points !== null || s.is3C || s.isGate || s.papluCount > 0));
+
 
             const rowBgClass = hasError
               ? "bg-destructive/10"

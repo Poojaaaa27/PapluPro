@@ -33,34 +33,29 @@ export default function GamePage() {
 
   const roundErrors = useMemo(() => {
     const errors: Record<number, string> = {};
-    if (!gameDetails.is3CardGame || players.length === 0) return errors;
+    if (players.length === 0) return errors;
 
     for (const round of rounds) {
-        // Only validate completed rounds
-        if (!round.isComplete) continue;
+        // Only validate completed rounds that have some input
+        const isTouched = Object.values(round.playerStatus).some(s => s.outcome !== 'Playing' || s.points !== null || s.is3C || s.isGate || s.papluCount > 0);
+        
+        if (!isTouched && !round.isComplete) continue;
 
-        const papluCount = Object.values(round.playerStatus).reduce((acc, s) => acc + (s?.papluCount || 0), 0);
-        if (papluCount > 3) {
-            errors[round.id] = `Max 3 Paplus allowed. Found: ${papluCount}.`;
-            continue; 
-        }
-
-        const isRoundFullyEntered = players.every(player => {
-            const status = round.playerStatus[player.id];
-            if (!status) return false;
-            const isDefaultPlaying = status.outcome === 'Playing' && status.points === null && !status.is3C && status.papluCount === 0 && !status.isGate;
-            return !isDefaultPlaying;
-        });
-
-        if (isRoundFullyEntered) {
-            const winnerCount = Object.values(round.playerStatus).filter(s => s?.outcome === 'Winner').length;
-            if (winnerCount !== 1) {
-                errors[round.id] = `Must have exactly one winner. Found: ${winnerCount}.`;
+        if (gameDetails.is3CardGame) {
+            const papluCount = Object.values(round.playerStatus).reduce((acc, s) => acc + (s?.papluCount || 0), 0);
+            if (papluCount > 3) {
+                errors[round.id] = `Max 3 Paplus allowed. Found: ${papluCount}.`;
+                continue; 
             }
+        }
+        
+        const winnerCount = Object.values(round.playerStatus).filter(s => s?.outcome === 'Winner').length;
+        if (winnerCount !== 1) {
+            errors[round.id] = `Must have exactly one winner. Found: ${winnerCount}.`;
         }
     }
     return errors;
-  }, [rounds, gameDetails.is3CardGame, players]);
+  }, [rounds, players, gameDetails.is3CardGame]);
 
   const hasErrors = Object.keys(roundErrors).length > 0;
 
@@ -98,6 +93,19 @@ export default function GamePage() {
     addRound();
   };
 
+  const handleToggleComplete = (roundId: number) => {
+    const roundError = roundErrors[roundId];
+    if(roundError) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Round",
+        description: roundError,
+      });
+      return;
+    }
+    toggleRoundCompletion(roundId);
+  }
+
 
   return (
     <div className="py-8">
@@ -128,7 +136,7 @@ export default function GamePage() {
                 players={players} 
                 rounds={rounds}
                 onStatusChange={handleStatusChange}
-                onToggleComplete={toggleRoundCompletion}
+                onToggleComplete={handleToggleComplete}
                 isOrganizer={isOrganizer}
                 roundErrors={roundErrors}
             />
