@@ -94,6 +94,20 @@ export default function GamePage() {
 
     // If we are trying to complete the round, run validation.
     if (!round.isComplete) {
+      // Check for 3C winner if it's a 3 card game
+      if (gameDetails.is3CardGame) {
+        const threeCardWinnerCount = Object.values(round.playerStatus).filter(s => s?.is3C).length;
+        if (threeCardWinnerCount !== 1) {
+          toast({
+            variant: "destructive",
+            title: "Invalid Round",
+            description: `Round ${roundId} must have exactly one 3-Card (3C) winner because '3 Card Game' is enabled. Found: ${threeCardWinnerCount}.`,
+          });
+          return; // Stop the action
+        }
+      }
+
+      // Check for exactly one round winner
       const winnerCount = Object.values(round.playerStatus).filter(s => s?.outcome === 'Winner').length;
       if (winnerCount !== 1) {
         toast({
