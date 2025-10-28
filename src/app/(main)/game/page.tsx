@@ -31,50 +31,7 @@ export default function GamePage() {
   
   const isOrganizer = user?.role === 'organizer';
 
-  const roundErrors = useMemo(() => {
-    const errors: Record<number, string> = {};
-    if (players.length === 0) return errors;
-
-    for (const round of rounds) {
-        // --- Paplu validation (real-time) ---
-        const papluCount = Object.values(round.playerStatus).reduce((acc, s) => acc + (s?.papluCount || 0), 0);
-        if (papluCount > 3) {
-            errors[round.id] = `Max 3 Paplus. Found: ${papluCount}.`;
-            continue; // Prioritize this error
-        }
-
-        // --- Winner and 3C validation (only for completed rounds) ---
-        if (round.isComplete) {
-            const winnerCount = Object.values(round.playerStatus).filter(s => s?.outcome === 'Winner').length;
-            if (winnerCount !== 1) {
-                errors[round.id] = `Must have one Winner (D). Found: ${winnerCount}.`;
-                continue;
-            }
-
-            if (gameDetails.is3CardGame) {
-                const threeCardWinnerCount = Object.values(round.playerStatus).filter(s => s?.is3C).length;
-                if (threeCardWinnerCount !== 1) {
-                    errors[round.id] = `Must have one 3C winner. Found: ${threeCardWinnerCount}.`;
-                    continue;
-                }
-            }
-        }
-    }
-    return errors;
-  }, [rounds, players, gameDetails.is3CardGame]);
-
-  const hasErrors = Object.keys(roundErrors).length > 0;
-
   const handleSaveGame = () => {
-    if (hasErrors) {
-       toast({
-        variant: "destructive",
-        title: "Cannot Save Game",
-        description: `Please fix the errors in the rounds before saving.`,
-      });
-      return;
-    }
-    
     // Final check on all rounds to ensure they are valid if they have data
     for (const round of rounds) {
        const hasScores = Object.values(round.scores).some(s => s !== 0);
@@ -102,14 +59,6 @@ export default function GamePage() {
   };
 
   const handleAddRound = () => {
-    if (hasErrors) {
-      toast({
-        variant: "destructive",
-        title: "Invalid Round",
-        description: `Cannot add a new round until all errors are fixed.`,
-      });
-      return;
-    }
     addRound();
   };
   
@@ -127,18 +76,6 @@ export default function GamePage() {
               description: `Round ${roundId} must have exactly one Winner (D) to be completed. Found: ${winnerCount}.`,
           });
           return;
-      }
-      
-      if (gameDetails.is3CardGame) {
-          const threeCardWinnerCount = Object.values(round.playerStatus).filter(s => s?.is3C).length;
-          if (threeCardWinnerCount !== 1) {
-              toast({
-                  variant: "destructive",
-                  title: "Invalid 3-Card Winner",
-                  description: `Round ${roundId} must have exactly one 3C winner when '3 Card Game' is enabled. Found: ${threeCardWinnerCount}.`,
-              });
-              return;
-          }
       }
     }
 
@@ -177,11 +114,10 @@ export default function GamePage() {
                 onStatusChange={handleStatusChange}
                 onToggleComplete={handleToggleComplete}
                 isOrganizer={isOrganizer}
-                roundErrors={roundErrors}
             />
             {isOrganizer && (
               <div className="flex justify-center mt-4">
-                <Button onClick={handleAddRound} variant="outline" disabled={hasErrors}>
+                <Button onClick={handleAddRound} variant="outline">
                   <PlusCircle />
                   Add Round
                 </Button>
