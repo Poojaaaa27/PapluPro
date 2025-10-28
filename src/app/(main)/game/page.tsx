@@ -33,30 +33,50 @@ export default function GamePage() {
 
   const isOrganizer = user?.role === 'organizer';
 
-  // Real-time validation for paplu count
+  // Real-time validation
   useEffect(() => {
     const newErrors: Record<number, string> = {};
     rounds.forEach(round => {
+      // Paplu count validation
       const totalPapluInRound = Object.values(round.playerStatus).reduce((sum, status) => sum + (status?.papluCount || 0), 0);
       if (totalPapluInRound > 3) {
         newErrors[round.id] = `Too many paplus (max 3)`;
+      }
+
+      // Carry over other errors that are only checked on completion
+      if (roundErrors[round.id] && !newErrors[round.id] && round.isComplete === false) {
+          const isPapluError = roundErrors[round.id]?.includes('paplus');
+          if (!isPapluError) {
+             newErrors[round.id] = roundErrors[round.id];
+          }
       }
     });
     setRoundErrors(newErrors);
   }, [rounds]);
 
   const handleSaveGame = () => {
-    // Final check on all rounds to ensure they are valid if they have data
-    for (const round of rounds) {
-       const hasScores = Object.values(round.scores).some(s => s !== 0);
-       if(hasScores && !round.isComplete) {
-          toast({
-            variant: "destructive",
-            title: "Incomplete Rounds",
-            description: `Round ${round.id} has scores but is not marked as complete. Please complete all rounds with data before saving.`,
-          });
-          return;
-       }
+    // Check for any incomplete rounds with data
+    const incompleteRoundsWithData = rounds.filter(
+      r => !r.isComplete && Object.values(r.scores).some(s => s !== 0)
+    );
+
+    if (incompleteRoundsWithData.length > 0) {
+      toast({
+        variant: "destructive",
+        title: "Incomplete Rounds",
+        description: `Please complete all rounds with scores before saving (e.g., Round ${incompleteRoundsWithData[0].id}).`,
+      });
+      return;
+    }
+    
+    // Check for any errors
+    if(Object.keys(roundErrors).length > 0) {
+      toast({
+        variant: "destructive",
+        title: "Errors in Rounds",
+        description: `Please fix the errors in the highlighted rounds before saving.`,
+      });
+      return;
     }
 
     const newGameSession: Omit<GameSession, 'id'> = {
@@ -73,6 +93,7 @@ export default function GamePage() {
   };
 
   const handleAddRound = () => {
+    if (Object.keys(roundErrors).length > 0) return;
     addRound();
   };
   
@@ -80,30 +101,30 @@ export default function GamePage() {
     const round = rounds.find(r => r.id === roundId);
     if (!round) return;
 
+    let newErrors = { ...roundErrors };
+
     // If we are trying to complete the round, run validation.
     if (!round.isComplete) {
       const winnerCount = Object.values(round.playerStatus).filter(s => s?.outcome === 'Winner').length;
       if (winnerCount !== 1) {
-          toast({
-              variant: "destructive",
-              title: "Invalid Round",
-              description: `Round ${roundId} must have exactly one Winner (D) to be completed. Found: ${winnerCount}.`,
-          });
+          newErrors[roundId] = `Must have 1 winner (D)`;
+          setRoundErrors(newErrors);
           return;
       }
       
-      const totalPapluInRound = Object.values(round.playerStatus).reduce((sum, status) => sum + (status?.papluCount || 0), 0);
-      if (totalPapluInRound > 3) {
-          toast({
-              variant: "destructive",
-              title: "Invalid Round",
-              description: `Round ${roundId} has more than 3 paplus in total.`,
-          });
-          return;
+      if (gameDetails.is3CardGame) {
+          const threeCardWinnerCount = Object.values(round.playerStatus).filter(s => s?.is3C).length;
+          if (threeCardWinnerCount !== 1) {
+              newErrors[roundId] = `Must have 1 3C winner`;
+              setRoundErrors(newErrors);
+              return;
+          }
       }
     }
 
-    // If validation passes (or we are editing an already complete round), toggle its state
+    // If validation passes (or we are de-completing), clear errors for this round and toggle
+    delete newErrors[roundId];
+    setRoundErrors(newErrors);
     toggleRoundCompletion(roundId);
   }
 
