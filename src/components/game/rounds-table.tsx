@@ -84,18 +84,18 @@ export function RoundsTable({
   return (
     <div className="rounded-md border relative max-h-[70vh] overflow-auto">
       <Table className="w-full border-collapse min-w-[800px]">
-        <TableHeader>
+        <TableHeader className="sticky top-0 z-30 bg-background">
           <TableRow>
-            <TableHead className="w-[150px] text-center sticky left-0 top-0 z-30 bg-background font-headline text-lg border-b border-r">
+            <TableHead className="w-[150px] text-center sticky left-0 top-0 z-30 bg-inherit font-headline text-lg border-b border-r">
               Round
             </TableHead>
             {players.map((player) => (
-              <TableHead key={player.id} className="text-center font-headline text-lg font-bold sticky top-0 z-20 bg-background border-b">
+              <TableHead key={player.id} className="text-center font-headline text-lg font-bold sticky top-0 z-20 bg-inherit border-b">
                 {player.name}
               </TableHead>
             ))}
             {isOrganizer && (
-              <TableHead className="w-[120px] text-center sticky right-0 top-0 z-30 bg-background font-headline text-lg border-b border-l">
+              <TableHead className="w-[120px] text-center sticky right-0 top-0 z-30 bg-inherit font-headline text-lg border-b border-l">
                 Action
               </TableHead>
             )}
