@@ -39,7 +39,7 @@ export default function GamePage() {
         // --- Paplu validation (real-time) ---
         const papluCount = Object.values(round.playerStatus).reduce((acc, s) => acc + (s?.papluCount || 0), 0);
         if (papluCount > 3) {
-            errors[round.id] = `Max 3 Paplus allowed. Found: ${papluCount}.`;
+            errors[round.id] = `Max 3 Paplus. Found: ${papluCount}.`;
             continue; // Prioritize this error
         }
 
@@ -47,14 +47,14 @@ export default function GamePage() {
         if (round.isComplete) {
             const winnerCount = Object.values(round.playerStatus).filter(s => s?.outcome === 'Winner').length;
             if (winnerCount !== 1) {
-                errors[round.id] = `Round must have exactly one Winner (D). Found: ${winnerCount}.`;
+                errors[round.id] = `Must have one Winner (D). Found: ${winnerCount}.`;
                 continue;
             }
 
             if (gameDetails.is3CardGame) {
                 const threeCardWinnerCount = Object.values(round.playerStatus).filter(s => s?.is3C).length;
                 if (threeCardWinnerCount !== 1) {
-                    errors[round.id] = `Round must have one 3C winner. Found: ${threeCardWinnerCount}.`;
+                    errors[round.id] = `Must have one 3C winner. Found: ${threeCardWinnerCount}.`;
                     continue;
                 }
             }
@@ -74,15 +74,18 @@ export default function GamePage() {
       });
       return;
     }
-    // Make sure all rounds are complete before saving
-    const incompleteRound = rounds.find(r => !r.isComplete && Object.values(r.scores).some(s => s !== 0));
-    if (incompleteRound) {
-      toast({
-        variant: "destructive",
-        title: "Incomplete Rounds",
-        description: `Round ${incompleteRound.id} has scores but is not marked as complete. Please complete all rounds with data before saving.`,
-      });
-      return;
+    
+    // Final check on all rounds to ensure they are valid if they have data
+    for (const round of rounds) {
+       const hasScores = Object.values(round.scores).some(s => s !== 0);
+       if(hasScores && !round.isComplete) {
+          toast({
+            variant: "destructive",
+            title: "Incomplete Rounds",
+            description: `Round ${round.id} has scores but is not marked as complete. Please complete all rounds with data before saving.`,
+          });
+          return;
+       }
     }
 
     const newGameSession: Omit<GameSession, 'id'> = {
@@ -109,8 +112,37 @@ export default function GamePage() {
     }
     addRound();
   };
-
+  
   const handleToggleComplete = (roundId: number) => {
+    const round = rounds.find(r => r.id === roundId);
+    if (!round) return;
+
+    // If we are trying to complete the round, run validation.
+    if (!round.isComplete) {
+      const winnerCount = Object.values(round.playerStatus).filter(s => s?.outcome === 'Winner').length;
+      if (winnerCount !== 1) {
+          toast({
+              variant: "destructive",
+              title: "Invalid Round",
+              description: `Round ${roundId} must have exactly one Winner (D) to be completed. Found: ${winnerCount}.`,
+          });
+          return;
+      }
+      
+      if (gameDetails.is3CardGame) {
+          const threeCardWinnerCount = Object.values(round.playerStatus).filter(s => s?.is3C).length;
+          if (threeCardWinnerCount !== 1) {
+              toast({
+                  variant: "destructive",
+                  title: "Invalid 3-Card Winner",
+                  description: `Round ${roundId} must have exactly one 3C winner when '3 Card Game' is enabled. Found: ${threeCardWinnerCount}.`,
+              });
+              return;
+          }
+      }
+    }
+
+    // If validation passes (or we are editing an already complete round), toggle its state
     toggleRoundCompletion(roundId);
   }
 
