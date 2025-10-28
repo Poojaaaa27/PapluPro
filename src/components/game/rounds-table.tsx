@@ -106,7 +106,7 @@ export function RoundsTable({
             const isComplete = round.isComplete;
             const hasError = !!roundErrors[round.id];
 
-            const rowBgClass = hasError
+            const rowBgClass = hasError && round.isComplete
               ? "bg-destructive/10"
               : isComplete
               ? "bg-green-100/50 dark:bg-green-900/40"
@@ -120,8 +120,8 @@ export function RoundsTable({
                 <TableCell className="w-[150px] font-medium text-center sticky left-0 z-20 bg-inherit border-r">
                   <div className="flex flex-col items-center justify-center">
                     <span className="font-bold text-lg">{round.id}</span>
-                     {hasError && (
-                        <div className="flex items-center gap-1 text-destructive text-xs mt-1 text-center">
+                     {hasError && round.isComplete && (
+                        <div className="flex items-center gap-1 text-destructive text-xs mt-1 text-center max-w-[120px]">
                             <AlertCircle className="h-3 w-3 shrink-0" />
                             <p>{roundErrors[round.id]}</p>
                         </div>
