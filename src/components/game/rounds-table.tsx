@@ -106,7 +106,7 @@ export function RoundsTable({
             const isComplete = round.isComplete;
             const hasError = !!roundErrors[round.id];
 
-            const rowBgClass = hasError && round.isComplete
+            const rowBgClass = hasError
               ? "bg-destructive/10"
               : isComplete
               ? "bg-green-100/50 dark:bg-green-900/40"
