@@ -35,6 +35,7 @@ const mockRounds: GameRound[] = Array.from({ length: 15 }, (_, i) => ({
   id: i + 1,
   playerStatus: getDefaultPlayerStatuses(mockPlayers),
   scores: {},
+  isComplete: false,
 }));
 
 interface GameContextType {
@@ -46,6 +47,7 @@ interface GameContextType {
   gameDetails: GameDetails;
   setGameDetails: React.Dispatch<React.SetStateAction<GameDetails>>;
   handleStatusChange: (roundId: number, playerId: string, newStatus: PlayerStatus) => void;
+  toggleRoundCompletion: (roundId: number) => void;
   resetGame: () => void;
   totalScores: Record<string, number>;
 }
@@ -60,6 +62,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       id: i + 1,
       playerStatus: getDefaultPlayerStatuses(players),
       scores: {},
+      isComplete: false,
     }))
   );
 
@@ -115,6 +118,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
     });
   }, [players, rules, gameDetails.is3CardGame]);
 
+  const toggleRoundCompletion = (roundId: number) => {
+    setRounds(prevRounds =>
+      prevRounds.map(r =>
+        r.id === roundId ? { ...r, isComplete: !r.isComplete } : r
+      )
+    );
+  };
+
   const addRound = () => {
     setRounds(prevRounds => {
         const newRoundId = prevRounds.length > 0 ? prevRounds[prevRounds.length - 1].id + 1 : 1;
@@ -122,6 +133,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
             id: newRoundId,
             playerStatus: getDefaultPlayerStatuses(players),
             scores: {},
+            isComplete: false,
         };
         return [...prevRounds, newRound];
     })
@@ -132,6 +144,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       id: i + 1,
       playerStatus: getDefaultPlayerStatuses(players),
       scores: {},
+      isComplete: false,
     })));
   };
 
@@ -158,6 +171,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     gameDetails,
     setGameDetails,
     handleStatusChange,
+    toggleRoundCompletion,
     resetGame,
     totalScores
   };

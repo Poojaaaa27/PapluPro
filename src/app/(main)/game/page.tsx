@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo } from "react";
@@ -21,6 +22,7 @@ export default function GamePage() {
     gameDetails, 
     setGameDetails, 
     handleStatusChange,
+    toggleRoundCompletion,
     resetGame,
     addRound,
   } = useGame();
@@ -34,6 +36,9 @@ export default function GamePage() {
     if (!gameDetails.is3CardGame || players.length === 0) return errors;
 
     for (const round of rounds) {
+        // Only validate completed rounds
+        if (!round.isComplete) continue;
+
         const papluCount = Object.values(round.playerStatus).reduce((acc, s) => acc + (s?.papluCount || 0), 0);
         if (papluCount > 3) {
             errors[round.id] = `Max 3 Paplus allowed. Found: ${papluCount}.`;
@@ -123,6 +128,7 @@ export default function GamePage() {
                 players={players} 
                 rounds={rounds}
                 onStatusChange={handleStatusChange}
+                onToggleComplete={toggleRoundCompletion}
                 isOrganizer={isOrganizer}
                 roundErrors={roundErrors}
             />

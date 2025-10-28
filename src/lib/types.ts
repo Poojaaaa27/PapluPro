@@ -8,7 +8,7 @@ export interface User {
 }
 
 export interface Player {
-  id: string;
+  id:string;
   name: string;
 }
 
@@ -33,6 +33,7 @@ export interface GameRound {
   id: number;
   playerStatus: Record<string, PlayerStatus>; // Player ID -> structured status
   scores: Record<string, number>; // Player ID -> score
+  isComplete: boolean;
 }
 
 

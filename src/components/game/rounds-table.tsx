@@ -13,7 +13,7 @@ import type { GameRound, Player, PlayerStatus } from "@/lib/types";
 import { PlayerStatusPopover } from "./player-status-popover";
 import { getStatusString, cn } from "@/lib/utils";
 import { Button } from "../ui/button";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Edit, CheckCircle, Lock } from "lucide-react";
 
 interface RoundsTableProps {
   rounds: GameRound[];
@@ -23,6 +23,7 @@ interface RoundsTableProps {
     playerId: string,
     newStatus: PlayerStatus
   ) => void;
+  onToggleComplete: (roundId: number) => void;
   isOrganizer: boolean;
   roundErrors?: Record<number, string>;
 }
@@ -33,21 +34,25 @@ function PlayerStatusCell({
   status,
   onStatusChange,
   isOrganizer,
+  isLocked,
 }: {
   roundId: number;
   playerId: string;
   status: PlayerStatus;
   onStatusChange: RoundsTableProps["onStatusChange"];
   isOrganizer: boolean;
+  isLocked: boolean;
 }) {
   const displayString = getStatusString(status);
 
-  if (!isOrganizer) {
-    return (
-      <div className="text-center font-mono p-2 h-12 flex items-center justify-center text-sm">
-        {displayString || "-"}
-      </div>
-    );
+  const cellContent = (
+    <div className="text-center font-mono p-2 h-12 flex items-center justify-center text-sm break-words whitespace-pre-wrap">
+      {displayString || "-"}
+    </div>
+  );
+
+  if (!isOrganizer || isLocked) {
+    return cellContent;
   }
 
   return (
@@ -71,24 +76,14 @@ export function RoundsTable({
   rounds,
   players,
   onStatusChange,
+  onToggleComplete,
   isOrganizer,
   roundErrors = {},
 }: RoundsTableProps) {
-  const getRoundStatus = (round: GameRound) => {
-    const hasWinner = Object.values(round.playerStatus).some(
-      (status) => status.outcome === "Winner"
-    );
-    const hasScores = Object.values(round.scores).some((score) => score !== 0);
-    return hasWinner || hasScores ? "completed" : "pending";
-  };
-
-  const currentRoundIndex = rounds.findIndex(
-    (r) => getRoundStatus(r) === "pending"
-  );
 
   return (
     <div className="rounded-md border relative max-h-[70vh] overflow-auto">
-      <Table className="w-full border-collapse min-w-[600px]">
+      <Table className="w-full border-collapse min-w-[800px]">
         <TableHeader>
           <TableRow>
             <TableHead className="w-[150px] text-center sticky left-0 top-0 z-30 bg-background font-headline text-lg border-b border-r">
@@ -99,21 +94,21 @@ export function RoundsTable({
                 {player.name}
               </TableHead>
             ))}
+            {isOrganizer && (
+              <TableHead className="w-[120px] text-center sticky right-0 top-0 z-30 bg-background font-headline text-lg border-b border-l">
+                Action
+              </TableHead>
+            )}
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rounds.map((round, index) => {
-            const status = getRoundStatus(round);
-            const isCurrent =
-              index === currentRoundIndex && currentRoundIndex !== -1;
-            
+          {rounds.map((round) => {
             const hasError = !!roundErrors[round.id];
+            const isComplete = round.isComplete;
 
             const rowBgClass = hasError
               ? "bg-destructive/10"
-              : isCurrent
-              ? "bg-blue-100/50 dark:bg-blue-900/40"
-              : status === "completed"
+              : isComplete
               ? "bg-green-100/50 dark:bg-green-900/40"
               : "";
 
@@ -134,16 +129,30 @@ export function RoundsTable({
                   </div>
                 </TableCell>
                 {players.map((player) => (
-                  <TableCell key={player.id} className="p-1 text-center">
+                  <TableCell key={player.id} className={cn("p-1 text-center", isComplete && isOrganizer && "cursor-not-allowed")}>
                     <PlayerStatusCell
                       roundId={round.id}
                       playerId={player.id}
                       status={round.playerStatus[player.id]}
                       onStatusChange={onStatusChange}
                       isOrganizer={isOrganizer}
+                      isLocked={isComplete}
                     />
                   </TableCell>
                 ))}
+                {isOrganizer && (
+                    <TableCell className="w-[120px] text-center sticky right-0 z-20 bg-inherit border-l">
+                        {isComplete ? (
+                            <Button variant="outline" size="sm" onClick={() => onToggleComplete(round.id)}>
+                                <Edit /> Edit
+                            </Button>
+                        ) : (
+                            <Button variant="secondary" size="sm" onClick={() => onToggleComplete(round.id)}>
+                                <CheckCircle /> Complete
+                            </Button>
+                        )}
+                    </TableCell>
+                )}
               </TableRow>
             );
           })}
