@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { RoundsTable } from "@/components/game/rounds-table";
 import { GameSetupForm } from "@/components/game/game-setup-form";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { useGame } from "@/hooks/use-game";
 import { Save, Trash2, PlusCircle } from "lucide-react";
 import { useHistory } from "@/hooks/use-history";
 import { useToast } from "@/hooks/use-toast";
-import type { GameSession } from "@/lib/types";
+import type { GameSession, GameRound } from "@/lib/types";
 
 export default function GamePage() {
   const { user } = useAuth();
@@ -29,7 +29,21 @@ export default function GamePage() {
   const { addGameSession } = useHistory();
   const { toast } = useToast();
   
+  const [roundErrors, setRoundErrors] = useState<Record<number, string>>({});
+
   const isOrganizer = user?.role === 'organizer';
+
+  // Real-time validation for paplu count
+  useEffect(() => {
+    const newErrors: Record<number, string> = {};
+    rounds.forEach(round => {
+      const totalPapluInRound = Object.values(round.playerStatus).reduce((sum, status) => sum + (status?.papluCount || 0), 0);
+      if (totalPapluInRound > 3) {
+        newErrors[round.id] = `Too many paplus (max 3)`;
+      }
+    });
+    setRoundErrors(newErrors);
+  }, [rounds]);
 
   const handleSaveGame = () => {
     // Final check on all rounds to ensure they are valid if they have data
@@ -77,11 +91,23 @@ export default function GamePage() {
           });
           return;
       }
+      
+      const totalPapluInRound = Object.values(round.playerStatus).reduce((sum, status) => sum + (status?.papluCount || 0), 0);
+      if (totalPapluInRound > 3) {
+          toast({
+              variant: "destructive",
+              title: "Invalid Round",
+              description: `Round ${roundId} has more than 3 paplus in total.`,
+          });
+          return;
+      }
     }
 
     // If validation passes (or we are editing an already complete round), toggle its state
     toggleRoundCompletion(roundId);
   }
+
+  const hasErrors = Object.keys(roundErrors).length > 0;
 
   return (
     <div className="py-8">
@@ -114,10 +140,11 @@ export default function GamePage() {
                 onStatusChange={handleStatusChange}
                 onToggleComplete={handleToggleComplete}
                 isOrganizer={isOrganizer}
+                roundErrors={roundErrors}
             />
             {isOrganizer && (
               <div className="flex justify-center mt-4">
-                <Button onClick={handleAddRound} variant="outline">
+                <Button onClick={handleAddRound} variant="outline" disabled={hasErrors}>
                   <PlusCircle />
                   Add Round
                 </Button>
