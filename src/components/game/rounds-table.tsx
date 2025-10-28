@@ -84,18 +84,18 @@ export function RoundsTable({
   return (
     <div className="rounded-md border relative max-h-[70vh] overflow-auto">
       <Table className="w-full border-collapse min-w-[800px]">
-        <TableHeader className="sticky top-0 z-30 bg-background">
+        <TableHeader className="sticky top-0 z-10 bg-background">
           <TableRow>
-            <TableHead className="w-[150px] text-center sticky left-0 top-0 z-30 bg-inherit font-headline text-lg border-b border-r">
+            <TableHead className="w-[150px] text-center sticky left-0 z-20 bg-inherit font-headline text-lg border-b border-r">
               Round
             </TableHead>
             {players.map((player) => (
-              <TableHead key={player.id} className="text-center font-headline text-lg font-bold sticky top-0 z-20 bg-inherit border-b">
+              <TableHead key={player.id} className="text-center font-headline text-lg font-bold border-b">
                 {player.name}
               </TableHead>
             ))}
             {isOrganizer && (
-              <TableHead className="w-[120px] text-center sticky right-0 top-0 z-30 bg-inherit font-headline text-lg border-b border-l">
+              <TableHead className="w-[120px] text-center sticky right-0 z-20 bg-inherit font-headline text-lg border-b border-l">
                 Action
               </TableHead>
             )}
@@ -117,7 +117,7 @@ export function RoundsTable({
                 key={round.id}
                 className={cn(rowBgClass, "hover:bg-muted/50")}
               >
-                <TableCell className="w-[150px] font-medium text-center sticky left-0 z-20 bg-inherit border-r">
+                <TableCell className="w-[150px] font-medium text-center sticky left-0 z-10 bg-inherit border-r">
                   <div className="flex flex-col items-center justify-center">
                     <span className="font-bold text-lg">{round.id}</span>
                      {hasError && (
@@ -141,7 +141,7 @@ export function RoundsTable({
                   </TableCell>
                 ))}
                 {isOrganizer && (
-                    <TableCell className="w-[120px] text-center sticky right-0 z-20 bg-inherit border-l">
+                    <TableCell className="w-[120px] text-center sticky right-0 z-10 bg-inherit border-l">
                         {isComplete ? (
                             <Button variant="outline" size="sm" onClick={() => onToggleComplete(round.id)}>
                                 <Edit /> Edit
