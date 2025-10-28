@@ -48,11 +48,6 @@ export default function GamePage() {
                 continue; 
             }
         }
-        
-        const winnerCount = Object.values(round.playerStatus).filter(s => s?.outcome === 'Winner').length;
-        if (winnerCount !== 1) {
-            errors[round.id] = `Must have exactly one winner. Found: ${winnerCount}.`;
-        }
     }
     return errors;
   }, [rounds, players, gameDetails.is3CardGame]);
@@ -94,15 +89,23 @@ export default function GamePage() {
   };
 
   const handleToggleComplete = (roundId: number) => {
-    const roundError = roundErrors[roundId];
-    if(roundError) {
-      toast({
-        variant: "destructive",
-        title: "Invalid Round",
-        description: roundError,
-      });
-      return;
+    const round = rounds.find(r => r.id === roundId);
+    if (!round) return;
+
+    // If we are trying to complete the round, run validation.
+    if (!round.isComplete) {
+      const winnerCount = Object.values(round.playerStatus).filter(s => s?.outcome === 'Winner').length;
+      if (winnerCount !== 1) {
+        toast({
+          variant: "destructive",
+          title: "Invalid Round",
+          description: `Round ${roundId} must have exactly one winner (D) before it can be completed. Found: ${winnerCount}.`,
+        });
+        return; // Stop the action
+      }
     }
+
+    // No error, proceed to toggle completion status
     toggleRoundCompletion(roundId);
   }
 
