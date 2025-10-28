@@ -36,28 +36,21 @@ export default function GamePage() {
     if (players.length === 0) return errors;
 
     for (const round of rounds) {
-        // Only validate completed rounds that have some input
-        const isTouched = Object.values(round.playerStatus).some(s => s.outcome !== 'Playing' || s.points !== null || s.is3C || s.isGate || s.papluCount > 0);
-        
-        if (!isTouched && !round.isComplete) continue;
-
-        // --- Paplu validation ---
+        // --- Paplu validation (real-time) ---
         const papluCount = Object.values(round.playerStatus).reduce((acc, s) => acc + (s?.papluCount || 0), 0);
         if (papluCount > 3) {
             errors[round.id] = `Max 3 Paplus allowed. Found: ${papluCount}.`;
-            continue; 
+            continue; // Prioritize this error
         }
 
         // --- Winner and 3C validation (only for completed rounds) ---
         if (round.isComplete) {
-            // Check for exactly one winner
             const winnerCount = Object.values(round.playerStatus).filter(s => s?.outcome === 'Winner').length;
             if (winnerCount !== 1) {
                 errors[round.id] = `Round must have exactly one Winner (D). Found: ${winnerCount}.`;
                 continue;
             }
 
-            // Check for 3C winner if it's a 3 card game
             if (gameDetails.is3CardGame) {
                 const threeCardWinnerCount = Object.values(round.playerStatus).filter(s => s?.is3C).length;
                 if (threeCardWinnerCount !== 1) {
