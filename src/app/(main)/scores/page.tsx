@@ -15,7 +15,7 @@ export default function ScoresPage() {
         <div className="py-8 space-y-8">
             <div>
                 <h1 className="text-3xl font-bold font-headline tracking-tight">
-                    Scores & Game Sheet
+                    Result
                 </h1>
                 <p className="text-muted-foreground mt-1">
                     Live totals and a detailed breakdown of completed rounds.

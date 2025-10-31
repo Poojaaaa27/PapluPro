@@ -12,7 +12,7 @@ export function MainNav() {
     { href: "/dashboard", label: "Dashboard" },
     { href: "/teams", label: "Setup" },
     { href: "/game", label: "Game" },
-    { href: "/scores", label: "Game Sheet" },
+    { href: "/scores", label: "Result" },
     { href: "/history", label: "History" },
     { href: "/rules", label: "Rules" },
     { href: "/analytics", label: "Analytics" },
