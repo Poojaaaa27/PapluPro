@@ -89,7 +89,7 @@ export function RoundsTable({
                   {player.name}
                 </TableHead>
               ))}
-              {isOrganizer && rounds.length === 1 && (
+              {isOrganizer && (
                 <TableHead className="w-[120px] text-center sticky right-0 z-20 bg-inherit font-headline text-lg border-b border-l">
                   Action
                 </TableHead>
@@ -137,14 +137,14 @@ export function RoundsTable({
                       </PlayerStatusCell>
                     </TableCell>
                   ))}
-                  {isOrganizer && rounds.length === 1 && (
+                  {isOrganizer && (
                       <TableCell className="w-[120px] text-center sticky right-0 z-10 bg-inherit border-l">
                           {isComplete ? (
                               <Button variant="outline" size="sm" onClick={() => onToggleComplete(round.id)}>
                                   <Edit /> Edit
                               </Button>
                           ) : (
-                              <Button variant="secondary" size="sm" onClick={() => onToggleComplete(round.id)}>
+                              <Button variant="secondary" size="sm" onClick={() => onToggleComplete(round.id)} disabled={hasError}>
                                   <CheckCircle /> Complete
                               </Button>
                           )}
@@ -173,13 +173,13 @@ export function RoundsTable({
               <CardHeader>
                 <CardTitle className="flex justify-between items-center font-headline">
                   <span>Round {round.id}</span>
-                  {isOrganizer && rounds.length === 1 && (
+                  {isOrganizer && (
                     isComplete ? (
                         <Button variant="outline" size="sm" onClick={() => onToggleComplete(round.id)}>
                             <Edit /> Edit
                         </Button>
                     ) : (
-                        <Button variant="secondary" size="sm" onClick={() => onToggleComplete(round.id)}>
+                        <Button variant="secondary" size="sm" onClick={() => onToggleComplete(round.id)} disabled={hasError}>
                             <CheckCircle /> Complete
                         </Button>
                     )

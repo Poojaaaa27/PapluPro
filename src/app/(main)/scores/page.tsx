@@ -5,11 +5,22 @@ import { ScoresTable } from "@/components/game/scores-table";
 import { RoundsTable } from "@/components/game/rounds-table";
 import { useGame } from "@/hooks/use-game";
 import { useMemo } from "react";
+import { useRules } from "@/hooks/use-rules";
 
 export default function ScoresPage() {
-    const { players, rounds, totalScores } = useGame();
+    const { players, rounds, totalScores, handleStatusChange, toggleRoundCompletion } = useGame();
+    const { isOrganizer } = useRules();
 
     const completedRounds = useMemo(() => rounds.filter(r => r.isComplete), [rounds]);
+
+    const handleEditRound = (roundId: number) => {
+        // Find the round in the completed list
+        const roundToEdit = completedRounds.find(r => r.id === roundId);
+        if (roundToEdit) {
+            // This will mark it as incomplete, moving it back to the game page
+            toggleRoundCompletion(roundId);
+        }
+    }
 
     return (
         <div className="py-8 space-y-8">
@@ -33,9 +44,9 @@ export default function ScoresPage() {
                 <RoundsTable 
                     players={players}
                     rounds={completedRounds}
-                    onStatusChange={() => {}}
-                    onToggleComplete={() => {}}
-                    isOrganizer={false} // Make it read-only
+                    onStatusChange={handleStatusChange}
+                    onToggleComplete={handleEditRound}
+                    isOrganizer={isOrganizer}
                 />
             </div>
         </div>
