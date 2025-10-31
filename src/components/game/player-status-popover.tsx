@@ -36,14 +36,17 @@ export function PlayerStatusPopover({ children, status, onSave }: PlayerStatusPo
 
   const handleValueChange = (newPartialStatus: Partial<PlayerStatus>) => {
     let newStatus = { ...currentStatus, ...newPartialStatus };
-    // If outcome is not 'Playing', points should be null
+    
+    // If outcome is changed to something other than 'Playing', reset points.
     if ('outcome' in newPartialStatus && newPartialStatus.outcome !== 'Playing') {
       newStatus.points = null;
     }
+    
     setCurrentStatus(newStatus);
 
-    // Auto-save and close, except for points input which needs explicit blur.
-    if (!('points' in newPartialStatus) && newStatus.outcome !== 'Playing') {
+    // Auto-save and close for all changes except when entering points,
+    // which requires a blur event to save.
+    if (!('points' in newPartialStatus)) {
         onSave(newStatus);
         setIsOpen(false);
     }
