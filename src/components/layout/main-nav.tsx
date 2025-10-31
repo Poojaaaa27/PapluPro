@@ -10,10 +10,10 @@ export function MainNav() {
 
   const routes = [
     { href: "/dashboard", label: "Dashboard" },
+    { href: "/teams", label: "Setup" },
     { href: "/game", label: "Game" },
     { href: "/scores", label: "Game Sheet" },
     { href: "/history", label: "History" },
-    { href: "/teams", label: "Setup" },
     { href: "/rules", label: "Rules" },
     { href: "/analytics", label: "Analytics" },
   ];
