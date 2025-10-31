@@ -13,9 +13,8 @@ import type { GameRound, Player, PlayerStatus } from "@/lib/types";
 import { PlayerStatusPopover } from "./player-status-popover";
 import { getStatusString, cn } from "@/lib/utils";
 import { Button } from "../ui/button";
-import { AlertCircle, Edit, CheckCircle, Lock, User, MoreVertical } from "lucide-react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../ui/card";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { AlertCircle, Edit, CheckCircle, User } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 
 interface RoundsTableProps {
   rounds: GameRound[];
@@ -90,7 +89,7 @@ export function RoundsTable({
                   {player.name}
                 </TableHead>
               ))}
-              {isOrganizer && (
+              {isOrganizer && rounds.length === 1 && (
                 <TableHead className="w-[120px] text-center sticky right-0 z-20 bg-inherit font-headline text-lg border-b border-l">
                   Action
                 </TableHead>
@@ -125,7 +124,7 @@ export function RoundsTable({
                     </div>
                   </TableCell>
                   {players.map((player) => (
-                    <TableCell key={player.id} className={cn("p-1 text-center", isComplete && isOrganizer && "cursor-not-allowed")}>
+                    <TableCell key={player.id} className={cn("p-1 text-center", isComplete && "cursor-not-allowed")}>
                       <PlayerStatusCell
                         roundId={round.id}
                         playerId={player.id}
@@ -138,7 +137,7 @@ export function RoundsTable({
                       </PlayerStatusCell>
                     </TableCell>
                   ))}
-                  {isOrganizer && (
+                  {isOrganizer && rounds.length === 1 && (
                       <TableCell className="w-[120px] text-center sticky right-0 z-10 bg-inherit border-l">
                           {isComplete ? (
                               <Button variant="outline" size="sm" onClick={() => onToggleComplete(round.id)}>
@@ -174,7 +173,7 @@ export function RoundsTable({
               <CardHeader>
                 <CardTitle className="flex justify-between items-center font-headline">
                   <span>Round {round.id}</span>
-                  {isOrganizer && (
+                  {isOrganizer && rounds.length === 1 && (
                     isComplete ? (
                         <Button variant="outline" size="sm" onClick={() => onToggleComplete(round.id)}>
                             <Edit /> Edit

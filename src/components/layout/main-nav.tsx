@@ -11,9 +11,9 @@ export function MainNav() {
   const routes = [
     { href: "/dashboard", label: "Dashboard" },
     { href: "/game", label: "Game" },
-    { href: "/scores", label: "Scores" },
+    { href: "/scores", label: "Game Sheet" },
     { href: "/history", label: "History" },
-    { href: "/teams", label: "Teams" },
+    { href: "/teams", label: "Setup" },
     { href: "/rules", label: "Rules" },
     { href: "/analytics", label: "Analytics" },
   ];
@@ -26,7 +26,7 @@ export function MainNav() {
           href={route.href}
           className={cn(
             "text-sm font-medium transition-colors hover:text-primary font-headline",
-            pathname === route.href
+            pathname.startsWith(route.href) && (route.href !== "/" || pathname === "/")
               ? "text-primary"
               : "text-muted-foreground"
           )}

@@ -1,20 +1,19 @@
 
 "use client";
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import type { GameDetails, Player, Team } from "@/lib/types";
-import { Trash2, UserPlus, Users } from "lucide-react";
+import type { Player } from "@/lib/types";
+import { Trash2, UserPlus, Play } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { CalendarIcon } from 'lucide-react';
 import { Calendar } from '../ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Switch } from '../ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { useTeams } from '@/hooks/use-teams';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { GameDetails } from '@/lib/types';
+import { useRouter } from 'next/navigation';
 
 interface GameSetupFormProps {
     players: Player[];
@@ -26,15 +25,7 @@ interface GameSetupFormProps {
 
 export function GameSetupForm({ players, setPlayers, gameDetails, setGameDetails, isOrganizer }: GameSetupFormProps) {
   const [newPlayerName, setNewPlayerName] = useState('');
-  const { teams, getTeamById } = useTeams();
-
-  const handleTeamSelect = (teamId: string) => {
-    const selectedTeam = getTeamById(teamId);
-    if (selectedTeam) {
-        setGameDetails(prev => ({ ...prev, teamName: selectedTeam.name }));
-        setPlayers(selectedTeam.players);
-    }
-  }
+  const router = useRouter();
 
   const addPlayer = () => {
     if (newPlayerName.trim() && !players.find(p => p.name === newPlayerName.trim())) {
@@ -51,55 +42,34 @@ export function GameSetupForm({ players, setPlayers, gameDetails, setGameDetails
     const updatedPlayers = players.filter(player => player.id !== id);
     setPlayers(updatedPlayers);
   };
+
+  const handleStartGame = () => {
+      router.push('/game');
+  }
   
   if (!isOrganizer) {
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="font-headline">Game Setup</CardTitle>
-                <CardDescription>Current game configuration. Only organizers can make changes.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                 <div>
-                    <h3 className="font-headline text-lg mb-2">Game Details</h3>
-                    <p><strong>Team Name:</strong> {gameDetails.teamName}</p>
-                    <p><strong>Location:</strong> {gameDetails.location}</p>
-                    <p><strong>Date:</strong> {gameDetails.date ? format(new Date(gameDetails.date), "PPP") : 'Not set'}</p>
-                    <p><strong>3 Card Game:</strong> {gameDetails.is3CardGame ? 'Yes' : 'No'}</p>
-                </div>
-                <div>
-                    <h3 className="font-headline text-lg mb-2 flex items-center gap-2"><Users />Players</h3>
-                    <ul className="list-disc pl-5 space-y-1">
-                        {players.map(player => <li key={player.id}>{player.name}</li>)}
-                    </ul>
-                </div>
-            </CardContent>
-        </Card>
+        <div className="space-y-4">
+            <div>
+                <h3 className="font-headline text-lg mb-2">Game Details</h3>
+                <p><strong>Team Name:</strong> {gameDetails.teamName}</p>
+                <p><strong>Location:</strong> {gameDetails.location}</p>
+                <p><strong>Date:</strong> {gameDetails.date ? format(new Date(gameDetails.date), "PPP") : 'Not set'}</p>
+                <p><strong>3 Card Game:</strong> {gameDetails.is3CardGame ? 'Yes' : 'No'}</p>
+            </div>
+            <div>
+                <h3 className="font-headline text-lg mb-2 flex items-center gap-2">Players</h3>
+                <ul className="list-disc pl-5 space-y-1">
+                    {players.map(player => <li key={player.id}>{player.name}</li>)}
+                </ul>
+            </div>
+        </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="font-headline">Game Setup</CardTitle>
-        <CardDescription>Configure the details for the current game session.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-2">
-            <Label htmlFor="team-select" className="font-headline">Select Team</Label>
-            <Select onValueChange={handleTeamSelect}>
-                <SelectTrigger id="team-select">
-                    <SelectValue placeholder="Select a saved team..." />
-                </SelectTrigger>
-                <SelectContent>
-                    {teams.map(team => (
-                        <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+    <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
             <div className="space-y-2">
                 <Label htmlFor="teamName" className="font-headline">Team Name</Label>
                 <Input id="teamName" value={gameDetails.teamName} onChange={(e) => setGameDetails(prev => ({ ...prev, teamName: e.target.value }))} placeholder="e.g., The Aces" />
@@ -134,7 +104,7 @@ export function GameSetupForm({ players, setPlayers, gameDetails, setGameDetails
                     </PopoverContent>
                 </Popover>
             </div>
-             <div className="flex items-center space-x-2 pt-6">
+             <div className="flex items-center space-x-2 pt-8">
                 <Switch 
                     id="is3CardGame"
                     checked={gameDetails.is3CardGame}
@@ -159,13 +129,15 @@ export function GameSetupForm({ players, setPlayers, gameDetails, setGameDetails
             <Input 
               value={newPlayerName} 
               onChange={(e) => setNewPlayerName(e.target.value)} 
-              placeholder="Add a player for this game only" 
+              placeholder="Add player name" 
               onKeyDown={(e) => e.key === 'Enter' && addPlayer()}
             />
-            <Button onClick={addPlayer}><UserPlus className="mr-2 h-4 w-4" /> Add Player</Button>
+            <Button onClick={addPlayer}><UserPlus /> Add</Button>
           </div>
         </div>
-      </CardContent>
-    </Card>
+        <Button onClick={handleStartGame} className="w-full" size="lg" disabled={players.length < 2}>
+            <Play /> Start Game
+        </Button>
+    </div>
   );
 }

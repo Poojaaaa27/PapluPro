@@ -3,24 +3,24 @@
 
 import { useMemo, useState, useEffect } from "react";
 import { RoundsTable } from "@/components/game/rounds-table";
-import { GameSetupForm } from "@/components/game/game-setup-form";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { useGame } from "@/hooks/use-game";
-import { Save, Trash2, PlusCircle } from "lucide-react";
+import { Save, Trash2, PlusCircle, CheckCircle } from "lucide-react";
 import { useHistory } from "@/hooks/use-history";
 import { useToast } from "@/hooks/use-toast";
-import type { GameSession, GameRound } from "@/lib/types";
+import type { GameSession } from "@/lib/types";
+import { useRouter } from "next/navigation";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Gamepad2 } from "lucide-react";
 
 export default function GamePage() {
   const { user } = useAuth();
+  const router = useRouter();
   const { 
     players, 
-    updatePlayers, 
     rounds, 
     gameDetails, 
-    setGameDetails, 
     handleStatusChange,
     toggleRoundCompletion,
     resetGame,
@@ -33,48 +33,33 @@ export default function GamePage() {
 
   const isOrganizer = user?.role === 'organizer';
 
-  // Real-time validation
-  useEffect(() => {
-    const newErrors: Record<number, string> = {};
-    rounds.forEach(round => {
-      // Paplu count validation
-      const totalPapluInRound = Object.values(round.playerStatus).reduce((sum, status) => sum + (status?.papluCount || 0), 0);
-      if (totalPapluInRound > 3) {
-        newErrors[round.id] = `Too many paplus (max 3)`;
-      }
-
-      // Carry over other errors that are only checked on completion
-      if (roundErrors[round.id] && !newErrors[round.id] && round.isComplete === false) {
-          const isPapluError = roundErrors[round.id]?.includes('paplus');
-          if (!isPapluError) {
-             newErrors[round.id] = roundErrors[round.id];
-          }
-      }
-    });
-    setRoundErrors(newErrors);
+  const currentRound = useMemo(() => {
+    return rounds.find(r => !r.isComplete);
   }, [rounds]);
 
-  const handleSaveGame = () => {
-    // Check for any incomplete rounds with data
-    const incompleteRoundsWithData = rounds.filter(
-      r => !r.isComplete && Object.values(r.scores).some(s => s !== 0)
-    );
+  // Real-time validation for the current round
+  useEffect(() => {
+    if (!currentRound) return;
 
-    if (incompleteRoundsWithData.length > 0) {
-      toast({
-        variant: "destructive",
-        title: "Incomplete Rounds",
-        description: `Please complete all rounds with scores before saving (e.g., Round ${incompleteRoundsWithData[0].id}).`,
-      });
-      return;
+    const newErrors: Record<number, string> = {};
+    const round = currentRound;
+
+    // Paplu count validation
+    const totalPapluInRound = Object.values(round.playerStatus).reduce((sum, status) => sum + (status?.papluCount || 0), 0);
+    if (totalPapluInRound > 3) {
+      newErrors[round.id] = `Too many paplus (max 3)`;
     }
     
-    // Check for any errors
-    if(Object.keys(roundErrors).length > 0) {
+    setRoundErrors(newErrors);
+  }, [currentRound, rounds]); // Depend on rounds to catch status changes
+
+  const handleSaveGame = () => {
+    const completedRounds = rounds.filter(r => r.isComplete);
+    if (completedRounds.length === 0) {
       toast({
         variant: "destructive",
-        title: "Errors in Rounds",
-        description: `Please fix the errors in the highlighted rounds before saving.`,
+        title: "No Completed Rounds",
+        description: `Complete at least one round before saving the game.`,
       });
       return;
     }
@@ -82,7 +67,7 @@ export default function GamePage() {
     const newGameSession: Omit<GameSession, 'id'> = {
       ...gameDetails,
       players,
-      rounds: rounds.filter(r => r.isComplete), // Only save completed rounds
+      rounds: completedRounds,
       status: "Completed",
     };
     addGameSession(newGameSession);
@@ -90,10 +75,18 @@ export default function GamePage() {
       title: "Game Saved",
       description: `The game "${gameDetails.teamName}" has been saved to your history.`,
     });
+    router.push('/history');
   };
 
   const handleAddRound = () => {
-    if (Object.keys(roundErrors).length > 0) return;
+    if (currentRound && roundErrors[currentRound.id]) return;
+    
+    // If there is a current round, it must be completed before adding a new one
+    if (currentRound) {
+        handleToggleComplete(currentRound.id);
+        return;
+    }
+    // If no current round, it means all are complete, so add a new one
     addRound();
   };
   
@@ -103,39 +96,47 @@ export default function GamePage() {
 
     let newErrors = { ...roundErrors };
 
-    // If we are trying to complete the round, run validation.
-    if (!round.isComplete) {
-      const winnerCount = Object.values(round.playerStatus).filter(s => s?.outcome === 'Winner').length;
-      if (winnerCount !== 1) {
-          newErrors[roundId] = `Must have 1 winner (D)`;
-          setRoundErrors(newErrors);
-          return;
-      }
-      
-      if (gameDetails.is3CardGame) {
-          const threeCardWinnerCount = Object.values(round.playerStatus).filter(s => s?.is3C).length;
-          if (threeCardWinnerCount !== 1) {
-              newErrors[roundId] = `Must have 1 3C winner`;
-              setRoundErrors(newErrors);
-              return;
-          }
-      }
+    // Run validation before completing
+    const winnerCount = Object.values(round.playerStatus).filter(s => s?.outcome === 'Winner').length;
+    if (winnerCount !== 1) {
+        newErrors[roundId] = `Must have 1 winner (D)`;
+        setRoundErrors(newErrors);
+        return;
+    }
+    
+    if (gameDetails.is3CardGame) {
+        const threeCardWinnerCount = Object.values(round.playerStatus).filter(s => s?.is3C).length;
+        if (threeCardWinnerCount !== 1) {
+            newErrors[roundId] = `Must have 1 3C winner`;
+            setRoundErrors(newErrors);
+            return;
+        }
+    }
+    
+    // Paplu check on complete
+    const totalPapluInRound = Object.values(round.playerStatus).reduce((sum, status) => sum + (status?.papluCount || 0), 0);
+    if (totalPapluInRound > 3) {
+      newErrors[round.id] = `Too many paplus (max 3)`;
+      setRoundErrors(newErrors);
+      return;
     }
 
-    // If validation passes (or we are de-completing), clear errors for this round and toggle
+
+    // If validation passes, clear errors for this round and toggle
     delete newErrors[roundId];
     setRoundErrors(newErrors);
     toggleRoundCompletion(roundId);
+    router.push('/scores');
   }
 
-  const hasErrors = Object.keys(roundErrors).length > 0;
+  const hasError = currentRound ? !!roundErrors[currentRound.id] : false;
 
   return (
     <div className="py-8">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold font-headline tracking-tight">
-            Game Input
+            {currentRound ? `Current Round: ${currentRound.id}` : "Game Complete"}
           </h1>
           <p className="text-muted-foreground mt-1">
             {gameDetails.teamName} at {gameDetails.location} | Players: {players.length} | Date: {gameDetails.date}
@@ -149,39 +150,44 @@ export default function GamePage() {
         )}
       </div>
 
-      <Tabs defaultValue="rounds" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="rounds" className="font-headline">Input</TabsTrigger>
-          <TabsTrigger value="setup" className="font-headline">Setup</TabsTrigger>
-        </TabsList>
-        <TabsContent value="rounds" className="mt-6">
+      {currentRound ? (
+        <>
             <RoundsTable 
-                players={players} 
-                rounds={rounds}
+                rounds={[currentRound]}
+                players={players}
                 onStatusChange={handleStatusChange}
                 onToggleComplete={handleToggleComplete}
                 isOrganizer={isOrganizer}
                 roundErrors={roundErrors}
             />
-            {isOrganizer && (
-              <div className="flex justify-center mt-4">
-                <Button onClick={handleAddRound} variant="outline" disabled={hasErrors}>
-                  <PlusCircle />
-                  Add Round
+             {isOrganizer && (
+              <div className="flex justify-center mt-6">
+                <Button onClick={() => handleToggleComplete(currentRound.id)} size="lg" disabled={hasError}>
+                  <CheckCircle />
+                  Complete Round {currentRound.id}
                 </Button>
               </div>
             )}
-        </TabsContent>
-        <TabsContent value="setup" className="mt-6">
-          <GameSetupForm 
-            players={players} 
-            setPlayers={updatePlayers}
-            gameDetails={gameDetails}
-            setGameDetails={setGameDetails}
-            isOrganizer={isOrganizer}
-          />
-        </TabsContent>
-      </Tabs>
+        </>
+      ) : (
+        <Alert>
+            <Gamepad2 className="h-4 w-4" />
+            <AlertTitle className="font-headline">All Rounds Complete!</AlertTitle>
+            <AlertDescription>
+                You've finished all the rounds. You can now save the game to your history, or add another round.
+            </AlertDescription>
+            <div className="flex gap-4 mt-4">
+                <Button onClick={handleSaveGame}><Save /> Save Game</Button>
+                 {isOrganizer && (
+                    <Button onClick={addRound} variant="outline">
+                        <PlusCircle />
+                        Add Another Round
+                    </Button>
+                 )}
+            </div>
+        </Alert>
+      )}
+
     </div>
   );
 }
