@@ -19,13 +19,13 @@ export function MainNav() {
   ];
 
   return (
-    <nav className="flex items-center space-x-4 lg:space-x-6">
+    <nav className="flex items-center space-x-4 lg:space-x-6 overflow-x-auto whitespace-nowrap">
       {routes.map((route) => (
         <Link
           key={route.href}
           href={route.href}
           className={cn(
-            "text-sm font-medium transition-colors hover:text-primary font-headline",
+            "text-sm font-medium transition-colors hover:text-primary font-headline py-2",
             pathname.startsWith(route.href) && (route.href !== "/" || pathname === "/")
               ? "text-primary"
               : "text-muted-foreground"

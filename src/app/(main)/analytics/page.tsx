@@ -234,7 +234,7 @@ export default function AnalyticsPage() {
                     <CardTitle className="font-headline">Player Leaderboard</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="rounded-md border">
+                    <div className="rounded-md border overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -258,7 +258,7 @@ export default function AnalyticsPage() {
                                                     <AvatarImage src={`https://avatar.vercel.sh/${playerStat.name}.png`} />
                                                     <AvatarFallback>{getInitials(playerStat.name)}</AvatarFallback>
                                                 </Avatar>
-                                                <div className="font-medium font-headline">{playerStat.name}</div>
+                                                <div className="font-medium font-headline whitespace-nowrap">{playerStat.name}</div>
                                                 {index === 0 && playerStat.totalScore > 0 && <Crown className="w-5 h-5 text-amber-500" />}
                                             </div>
                                         </TableCell>

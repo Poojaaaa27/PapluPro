@@ -98,15 +98,15 @@ export default function GameHistoryDetailPage() {
     return (
         <div className="py-8 space-y-8">
             <div className="flex items-center justify-between flex-wrap gap-4">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 md:gap-4">
                     <Button variant="outline" size="icon" onClick={() => router.back()}>
                         <ArrowLeft />
                     </Button>
                     <div>
-                        <h1 className="text-3xl font-bold font-headline tracking-tight">
+                        <h1 className="text-2xl md:text-3xl font-bold font-headline tracking-tight">
                             {gameSession.teamName}
                         </h1>
-                        <p className="text-muted-foreground mt-1">
+                        <p className="text-sm md:text-base text-muted-foreground mt-1">
                             {gameSession.location} &bull; {gameDate}
                         </p>
                     </div>
