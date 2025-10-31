@@ -35,11 +35,15 @@ export function PlayerStatusPopover({ children, status, onSave }: PlayerStatusPo
   }, [isOpen, status]);
 
   const handleValueChange = (newPartialStatus: Partial<PlayerStatus>) => {
-    const newStatus = { ...currentStatus, ...newPartialStatus };
+    let newStatus = { ...currentStatus, ...newPartialStatus };
+    // If outcome is not 'Playing', points should be null
+    if ('outcome' in newPartialStatus && newPartialStatus.outcome !== 'Playing') {
+      newStatus.points = null;
+    }
     setCurrentStatus(newStatus);
 
     // Auto-save and close, except for points input which needs explicit blur.
-    if (!('points' in newPartialStatus)) {
+    if (!('points' in newPartialStatus) && newStatus.outcome !== 'Playing') {
         onSave(newStatus);
         setIsOpen(false);
     }
@@ -93,42 +97,40 @@ export function PlayerStatusPopover({ children, status, onSave }: PlayerStatusPo
                 </div>
             </div>
 
-            <div className="flex items-center justify-between gap-4 border-t pt-2">
-              <Label htmlFor="outcome-select" className="font-headline text-sm">Outcome</Label>
-              <Select
-                value={currentStatus.outcome}
-                onValueChange={(val) => handleValueChange({ outcome: val as RoundOutcome })}
-              >
-                <SelectTrigger id="outcome-select" className="h-8 w-[120px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Winner">Winner (D)</SelectItem>
-                  <SelectItem value="Playing">Playing</SelectItem>
-                  <SelectItem value="Full">Full (F)</SelectItem>
-                  <SelectItem value="Scoot">Scoot (S)</SelectItem>
-                  <SelectItem value="MidScoot">Mid Scoot (MS)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {isPlaying && (
-                <div className="flex items-center justify-between gap-4">
-                    <Label htmlFor="points-input" className="font-headline text-sm">Points</Label>
+            <div className="flex items-center justify-between gap-2 border-t pt-2">
+              <Label htmlFor="outcome-select" className="font-headline text-sm shrink-0">Outcome</Label>
+              <div className="flex gap-1">
+                <Select
+                  value={currentStatus.outcome}
+                  onValueChange={(val) => handleValueChange({ outcome: val as RoundOutcome })}
+                >
+                  <SelectTrigger id="outcome-select" className="h-8 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Winner">Winner (D)</SelectItem>
+                    <SelectItem value="Playing">Playing</SelectItem>
+                    <SelectItem value="Full">Full (F)</SelectItem>
+                    <SelectItem value="Scoot">Scoot (S)</SelectItem>
+                    <SelectItem value="MidScoot">Mid Scoot (MS)</SelectItem>
+                  </SelectContent>
+                </Select>
+                {isPlaying && (
                     <Input
                         id="points-input"
                         type="number"
-                        placeholder="e.g. 25"
+                        placeholder="Pts"
                         value={currentStatus.points === null ? '' : currentStatus.points}
                         onChange={(e) => {
                             const value = e.target.value;
                             setCurrentStatus(s => ({ ...s, points: value === '' ? null : Number(value) }))
                         }}
                         onBlur={handlePointsBlur}
-                        className="h-8 w-[120px]"
+                        className="h-8 w-[60px]"
                     />
-                </div>
-            )}
+                )}
+              </div>
+            </div>
         </div>
       </PopoverContent>
     </Popover>
