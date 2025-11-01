@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import type { PlayerStatus, RoundOutcome, PapluCount } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 interface PlayerStatusPopoverProps {
   children: ReactNode;
