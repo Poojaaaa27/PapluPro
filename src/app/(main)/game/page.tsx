@@ -95,25 +95,31 @@ export default function GamePage() {
     if (!round) return;
 
     let newErrors = { ...roundErrors };
+    
+    // Clear previous error for this round before re-validating
+    delete newErrors[roundId];
 
-    // Run validation before completing
+    // --- VALIDATION RULES ---
+
+    // 1. Check for exactly one winner
     const winnerCount = Object.values(round.playerStatus).filter(s => s?.outcome === 'Winner').length;
     if (winnerCount !== 1) {
-        newErrors[roundId] = `Must have 1 winner (D)`;
+        newErrors[roundId] = `Must have exactly 1 winner (D)`;
         setRoundErrors(newErrors);
         return;
     }
     
+    // 2. If it's a 3-card game, check for exactly one 3C winner
     if (gameDetails.is3CardGame) {
         const threeCardWinnerCount = Object.values(round.playerStatus).filter(s => s?.is3C).length;
         if (threeCardWinnerCount !== 1) {
-            newErrors[roundId] = `Must have 1 3C winner`;
+            newErrors[roundId] = `Must have exactly 1 3C winner`;
             setRoundErrors(newErrors);
             return;
         }
     }
     
-    // Paplu check on complete
+    // 3. Check Paplu count
     const totalPapluInRound = Object.values(round.playerStatus).reduce((sum, status) => sum + (status?.papluCount || 0), 0);
     if (totalPapluInRound > 3) {
       newErrors[round.id] = `Too many paplus (max 3)`;
@@ -121,9 +127,24 @@ export default function GamePage() {
       return;
     }
 
+    // 4. Check if every player has either an outcome or points
+    const incompletePlayer = players.find(p => {
+        const status = round.playerStatus[p.id];
+        if (!status) return true; // Should not happen, but defensive
+        // A player is incomplete if they are 'Playing' but have no points entered.
+        return status.outcome === 'Playing' && (status.points === null || status.points === undefined);
+    });
+
+    if (incompletePlayer) {
+        newErrors[roundId] = `All players must have points or an outcome (F, S, MS)`;
+        setRoundErrors(newErrors);
+        return;
+    }
+
+    // --- END VALIDATION ---
+
 
     // If validation passes, clear errors for this round and toggle
-    delete newErrors[roundId];
     setRoundErrors(newErrors);
     toggleRoundCompletion(roundId);
     router.push('/scores');
