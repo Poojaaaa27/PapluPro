@@ -32,7 +32,11 @@ export function HistoryProvider({ children }: { children: ReactNode }) {
         try {
             const storedHistory = localStorage.getItem(getStorageKey());
             if (storedHistory) {
-                setGameHistory(JSON.parse(storedHistory));
+                const parsedHistory = JSON.parse(storedHistory).map((session: GameSession) => ({
+                    ...session,
+                    is3CardGame: session.is3CardGame !== undefined ? session.is3CardGame : true
+                }));
+                setGameHistory(parsedHistory);
             } else {
                 setGameHistory(MOCK_HISTORY); // or an empty array
             }

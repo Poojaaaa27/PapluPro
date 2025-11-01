@@ -13,6 +13,7 @@ interface PlayerStatusPopoverProps {
   children: ReactNode;
   status: PlayerStatus;
   onSave: (newStatus: PlayerStatus) => void;
+  is3CardGame: boolean;
 }
 
 const defaultStatus: PlayerStatus = {
@@ -23,7 +24,7 @@ const defaultStatus: PlayerStatus = {
     isGate: false,
 }
 
-export function PlayerStatusPopover({ children, status, onSave }: PlayerStatusPopoverProps) {
+export function PlayerStatusPopover({ children, status, onSave, is3CardGame }: PlayerStatusPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentStatus, setCurrentStatus] = useState<PlayerStatus>(status || defaultStatus);
 
@@ -42,14 +43,15 @@ export function PlayerStatusPopover({ children, status, onSave }: PlayerStatusPo
       newStatus.points = null;
     }
     
-    setCurrentStatus(newStatus);
-
-    // Auto-save and close for all changes except when entering points,
-    // which requires a blur event to save.
-    if (!('points' in newPartialStatus)) {
-        onSave(newStatus);
-        setIsOpen(false);
+    // If not a 3-card game, ensure 3C and paplu are off
+    if (!is3CardGame) {
+        newStatus.is3C = false;
+        newStatus.papluCount = 0;
     }
+    
+    setCurrentStatus(newStatus);
+    onSave(newStatus);
+    setIsOpen(false);
   };
 
   const handlePointsBlur = () => {
@@ -66,11 +68,12 @@ export function PlayerStatusPopover({ children, status, onSave }: PlayerStatusPo
         <div className="grid gap-4">
             <div className="space-y-4">
                 <div className="flex items-center justify-between space-x-2">
-                    <Label htmlFor="is3C-switch" className="font-headline text-sm">3 Card (3C)</Label>
+                    <Label htmlFor="is3C-switch" className={cn("font-headline text-sm", !is3CardGame && "text-muted-foreground")}>3 Card (3C)</Label>
                     <Switch
                         id="is3C-switch"
                         checked={currentStatus.is3C}
                         onCheckedChange={(checked) => handleValueChange({ is3C: checked })}
+                        disabled={!is3CardGame}
                     />
                 </div>
                  <div className="flex items-center justify-between space-x-2">
@@ -82,10 +85,11 @@ export function PlayerStatusPopover({ children, status, onSave }: PlayerStatusPo
                     />
                 </div>
                 <div className="flex items-center justify-between gap-4">
-                  <Label htmlFor="paplu-select" className="font-headline text-sm">Paplu</Label>
+                  <Label htmlFor="paplu-select" className={cn("font-headline text-sm", !is3CardGame && "text-muted-foreground")}>Paplu</Label>
                   <Select
                     value={String(currentStatus.papluCount)}
                     onValueChange={(val) => handleValueChange({ papluCount: Number(val) as PapluCount })}
+                    disabled={!is3CardGame}
                   >
                     <SelectTrigger id="paplu-select" className="h-8 w-[120px]">
                       <SelectValue />

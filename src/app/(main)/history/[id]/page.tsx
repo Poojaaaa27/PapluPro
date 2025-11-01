@@ -154,6 +154,7 @@ export default function GameHistoryDetailPage() {
                         rounds={gameSession.rounds}
                         onStatusChange={() => {}} // Read-only, so no-op
                         isOrganizer={false} // Force read-only view
+                        is3CardGame={gameSession.is3CardGame}
                     />
                 </CardContent>
             </Card>

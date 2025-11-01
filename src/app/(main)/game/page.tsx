@@ -45,13 +45,15 @@ export default function GamePage() {
     const round = currentRound;
 
     // Paplu count validation
-    const totalPapluInRound = Object.values(round.playerStatus).reduce((sum, status) => sum + (status?.papluCount || 0), 0);
-    if (totalPapluInRound > 3) {
-      newErrors[round.id] = `Too many paplus (max 3)`;
+    if (gameDetails.is3CardGame) {
+      const totalPapluInRound = Object.values(round.playerStatus).reduce((sum, status) => sum + (status?.papluCount || 0), 0);
+      if (totalPapluInRound > 3) {
+        newErrors[round.id] = `Too many paplus (max 3)`;
+      }
     }
     
     setRoundErrors(newErrors);
-  }, [currentRound, rounds]); // Depend on rounds to catch status changes
+  }, [currentRound, rounds, gameDetails.is3CardGame]); // Depend on rounds to catch status changes
 
   const handleSaveGame = () => {
     const completedRounds = rounds.filter(r => r.isComplete);
@@ -76,18 +78,6 @@ export default function GamePage() {
       description: `The game "${gameDetails.teamName}" has been saved to your history.`,
     });
     router.push('/history');
-  };
-
-  const handleAddRound = () => {
-    if (currentRound && roundErrors[currentRound.id]) return;
-    
-    // If there is a current round, it must be completed before adding a new one
-    if (currentRound) {
-        handleToggleComplete(currentRound.id);
-        return;
-    }
-    // If no current round, it means all are complete, so add a new one
-    addRound();
   };
   
   const handleToggleComplete = (roundId: number) => {
@@ -119,12 +109,14 @@ export default function GamePage() {
         }
     }
     
-    // 3. Check Paplu count
-    const totalPapluInRound = Object.values(round.playerStatus).reduce((sum, status) => sum + (status?.papluCount || 0), 0);
-    if (totalPapluInRound > 3) {
-      newErrors[round.id] = `Too many paplus (max 3)`;
-      setRoundErrors(newErrors);
-      return;
+    // 3. Check Paplu count if it's a 3-card game
+    if (gameDetails.is3CardGame) {
+      const totalPapluInRound = Object.values(round.playerStatus).reduce((sum, status) => sum + (status?.papluCount || 0), 0);
+      if (totalPapluInRound > 3) {
+        newErrors[round.id] = `Too many paplus (max 3)`;
+        setRoundErrors(newErrors);
+        return;
+      }
     }
 
     // 4. Check if every player has either an outcome or points
@@ -146,11 +138,11 @@ export default function GamePage() {
 
     // If validation passes, clear errors for this round and toggle
     setRoundErrors(newErrors);
-    toggleRoundCompletion(roundId);
+    if (isOrganizer) {
+      toggleRoundCompletion(roundId);
+    }
     router.push('/scores');
   }
-
-  const hasError = currentRound ? !!roundErrors[currentRound.id] : false;
 
   return (
     <div className="py-8">
@@ -180,6 +172,7 @@ export default function GamePage() {
                 onToggleComplete={handleToggleComplete}
                 isOrganizer={isOrganizer}
                 roundErrors={roundErrors}
+                is3CardGame={gameDetails.is3CardGame}
             />
         </>
       ) : (

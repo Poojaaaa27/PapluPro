@@ -24,9 +24,10 @@ interface RoundsTableProps {
     playerId: string,
     newStatus: PlayerStatus
   ) => void;
-  onToggleComplete: (roundId: number) => void;
+  onToggleComplete?: (roundId: number) => void;
   isOrganizer: boolean;
   roundErrors?: Record<number, string>;
+  is3CardGame?: boolean; // Make optional for history page
 }
 
 function PlayerStatusCell({
@@ -37,6 +38,7 @@ function PlayerStatusCell({
   isOrganizer,
   isLocked,
   children,
+  is3CardGame,
 }: {
   roundId: number;
   playerId: string;
@@ -45,6 +47,7 @@ function PlayerStatusCell({
   isOrganizer: boolean;
   isLocked: boolean;
   children: React.ReactNode;
+  is3CardGame: boolean;
 }) {
   if (!isOrganizer || isLocked) {
     return <div className="p-2 h-12 flex items-center justify-center">{children}</div>;
@@ -54,6 +57,7 @@ function PlayerStatusCell({
     <PlayerStatusPopover
       status={status}
       onSave={(newStatus) => onStatusChange(roundId, playerId, newStatus)}
+      is3CardGame={is3CardGame}
     >
       <Button
         variant="ghost"
@@ -72,6 +76,7 @@ export function RoundsTable({
   onToggleComplete,
   isOrganizer,
   roundErrors = {},
+  is3CardGame = true, // Default to true for backward compatibility on history page
 }: RoundsTableProps) {
   
   return (
@@ -89,7 +94,7 @@ export function RoundsTable({
                   {player.name}
                 </TableHead>
               ))}
-              {isOrganizer && (
+              {isOrganizer && onToggleComplete && (
                 <TableHead className="w-[120px] text-center sticky right-0 z-20 bg-inherit font-headline text-lg border-b border-l">
                   Action
                 </TableHead>
@@ -132,12 +137,13 @@ export function RoundsTable({
                         onStatusChange={onStatusChange}
                         isOrganizer={isOrganizer}
                         isLocked={isComplete}
+                        is3CardGame={is3CardGame}
                       >
                          <span className="font-mono text-sm break-words whitespace-pre-wrap">{getStatusString(round.playerStatus[player.id]) || "-"}</span>
                       </PlayerStatusCell>
                     </TableCell>
                   ))}
-                  {isOrganizer && (
+                  {isOrganizer && onToggleComplete && (
                       <TableCell className="w-[120px] text-center sticky right-0 z-10 bg-inherit border-l">
                           {isComplete ? (
                               <Button variant="outline" size="sm" onClick={() => onToggleComplete(round.id)}>
@@ -173,7 +179,7 @@ export function RoundsTable({
               <CardHeader>
                 <CardTitle className="flex justify-between items-center font-headline">
                   <span>Round {round.id}</span>
-                  {isOrganizer && (
+                  {isOrganizer && onToggleComplete && (
                     isComplete ? (
                         <Button variant="outline" size="sm" onClick={() => onToggleComplete(round.id)}>
                             <Edit /> Edit
@@ -210,6 +216,7 @@ export function RoundsTable({
                         onStatusChange={onStatusChange}
                         isOrganizer={isOrganizer}
                         isLocked={isComplete}
+                        is3CardGame={is3CardGame}
                       >
                          <div className="font-mono text-sm">{displayString}</div>
                       </PlayerStatusCell>

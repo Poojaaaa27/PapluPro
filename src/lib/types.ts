@@ -45,6 +45,7 @@ export interface GameSession {
   players: Player[];
   rounds: GameRound[];
   status: "Completed" | "In Progress" | "Not Started";
+  is3CardGame: boolean;
 }
 
 export interface GameRules {
