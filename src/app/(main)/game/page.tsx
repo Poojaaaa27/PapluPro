@@ -43,13 +43,33 @@ export default function GamePage() {
 
     const newErrors: Record<number, string> = {};
     const round = currentRound;
+    let errorFound = false;
 
     // Paplu count validation
     if (gameDetails.is3CardGame) {
       const totalPapluInRound = Object.values(round.playerStatus).reduce((sum, status) => sum + (status?.papluCount || 0), 0);
       if (totalPapluInRound > 3) {
         newErrors[round.id] = `Too many paplus (max 3)`;
+        errorFound = true;
       }
+    }
+
+    // Winner (D) count validation
+    if (!errorFound) {
+      const winnerCount = Object.values(round.playerStatus).filter(s => s?.outcome === 'Winner').length;
+      if (winnerCount > 1) {
+          newErrors[round.id] = `Must have only 1 winner (D)`;
+          errorFound = true;
+      }
+    }
+    
+    // 3C winner count validation
+    if (!errorFound && gameDetails.is3CardGame) {
+        const threeCardWinnerCount = Object.values(round.playerStatus).filter(s => s?.is3C).length;
+        if (threeCardWinnerCount > 1) {
+            newErrors[round.id] = `Must have only 1 3C winner`;
+            errorFound = true;
+        }
     }
     
     setRoundErrors(newErrors);
@@ -102,7 +122,12 @@ export default function GamePage() {
     // 2. If it's a 3-card game, check for exactly one 3C winner
     if (gameDetails.is3CardGame) {
         const threeCardWinnerCount = Object.values(round.playerStatus).filter(s => s?.is3C).length;
-        if (threeCardWinnerCount !== 1) {
+        if (threeCardWinnerCount > 1) {
+            newErrors[roundId] = `Must have only 1 3C winner`;
+            setRoundErrors(newErrors);
+            return;
+        }
+         if (threeCardWinnerCount < 1) {
             newErrors[roundId] = `Must have exactly 1 3C winner`;
             setRoundErrors(newErrors);
             return;
