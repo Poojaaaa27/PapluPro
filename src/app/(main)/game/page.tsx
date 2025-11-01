@@ -181,14 +181,6 @@ export default function GamePage() {
                 isOrganizer={isOrganizer}
                 roundErrors={roundErrors}
             />
-             {isOrganizer && (
-              <div className="flex justify-center mt-6">
-                <Button onClick={() => handleToggleComplete(currentRound.id)} size="lg" disabled={hasError}>
-                  <CheckCircle />
-                  Complete Round {currentRound.id}
-                </Button>
-              </div>
-            )}
         </>
       ) : (
         <Alert>
