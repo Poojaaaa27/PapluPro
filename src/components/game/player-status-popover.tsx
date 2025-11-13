@@ -23,7 +23,7 @@ const defaultStatus: PlayerStatus = {
     is3C: false,
     papluCount: 0,
     outcome: 'Playing',
-    points: 0, // Default points to 0
+    points: null,
     isGate: false,
 }
 
@@ -35,7 +35,7 @@ export function PlayerStatusPopover({ children, status, onSave, is3CardGame }: P
     // Reset internal state when popover opens with new status
     if (isOpen) {
         // Ensure that if status is null or points are null, it defaults correctly
-        const initialStatus = status ? { ...status, points: status.points ?? 0 } : { ...defaultStatus };
+        const initialStatus = status ? { ...status, points: status.points ?? 0 } : { ...defaultStatus, points: 0 };
         setCurrentStatus(initialStatus);
     }
   }, [isOpen, status]);

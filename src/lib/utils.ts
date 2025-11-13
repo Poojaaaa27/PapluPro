@@ -8,7 +8,9 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function getStatusString(status: PlayerStatus, round?: GameRound): string {
-    if (!status) return "Set Status";
+    if (!status || (status.outcome === 'Playing' && status.points === null && !status.is3C && status.papluCount === 0 && !status.isGate)) {
+      return "Set Status";
+    }
     
     if (round?.isSpecial) {
         return "0";
@@ -31,9 +33,6 @@ export function getStatusString(status: PlayerStatus, round?: GameRound): string
             if(status.points !== null) {
                 // For playing, points can be 0. We want to display it.
                 postRoundParts.push(`${status.points}`);
-            } else {
-                 // This case should ideally not happen if we default to 0, but as a fallback.
-                postRoundParts.push('0');
             }
             break;
         case 'Full':
@@ -50,11 +49,10 @@ export function getStatusString(status: PlayerStatus, round?: GameRound): string
     const preRoundString = preRoundParts.join(', ');
     const postRoundString = postRoundParts.join(', ');
 
-    if (preRoundString && postRoundString) {
+    if (preRoundString && postRoundString && postRoundString !== "null") {
         return `${preRoundString} | ${postRoundString}`;
     }
     
-    const result = preRoundString || postRoundString;
+    const result = postRoundString !== "null" ? postRoundString || preRoundString : preRoundString;
     return result === "" ? "Set Status" : result;
 }
-
