@@ -23,7 +23,7 @@ const defaultStatus: PlayerStatus = {
     is3C: false,
     papluCount: 0,
     outcome: 'Playing',
-    points: null,
+    points: 0, // Default points to 0
     isGate: false,
 }
 
@@ -34,7 +34,9 @@ export function PlayerStatusPopover({ children, status, onSave, is3CardGame }: P
   useEffect(() => {
     // Reset internal state when popover opens with new status
     if (isOpen) {
-        setCurrentStatus(status || defaultStatus);
+        // Ensure that if status is null or points are null, it defaults correctly
+        const initialStatus = status ? { ...status, points: status.points ?? 0 } : { ...defaultStatus };
+        setCurrentStatus(initialStatus);
     }
   }, [isOpen, status]);
 
@@ -44,6 +46,9 @@ export function PlayerStatusPopover({ children, status, onSave, is3CardGame }: P
     // If outcome is changed to something other than 'Playing', reset points.
     if ('outcome' in newPartialStatus && newPartialStatus.outcome !== 'Playing') {
       newStatus.points = null;
+    } else if ('outcome' in newPartialStatus && newPartialStatus.outcome === 'Playing') {
+      // If switching back to 'Playing', default points to 0
+      newStatus.points = 0;
     }
     
     // If not a 3-card game, ensure 3C and paplu are off
@@ -142,13 +147,13 @@ export function PlayerStatusPopover({ children, status, onSave, is3CardGame }: P
                         id="points-input"
                         type="number"
                         placeholder="Pts"
-                        value={currentStatus.points === null ? '' : currentStatus.points}
+                        value={currentStatus.points ?? ''}
                         onChange={(e) => {
                             const value = e.target.value;
                             setCurrentStatus(s => ({ ...s, points: value === '' ? null : Number(value) }))
                         }}
                         onKeyDown={handlePointsKeyDown}
-                        className="h-8 w-[60px]"
+                        className="h-8 w-[60px] [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none"
                         autoFocus
                     />
                     <Button variant="secondary" size="icon" className="h-8 w-8" onClick={handlePointsBlur}>

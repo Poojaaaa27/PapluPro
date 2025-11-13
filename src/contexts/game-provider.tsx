@@ -18,7 +18,7 @@ const defaultPlayerStatus: PlayerStatus = {
   is3C: false,
   papluCount: 0,
   outcome: 'Playing',
-  points: null,
+  points: 0,
   isGate: false,
 };
 
@@ -133,8 +133,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setRounds(prevRounds => {
       return prevRounds.map(r => {
         if (r.id === roundId) {
-          const newScores = calculateRoundScores(r.playerStatus, players, rules, gameDetails.is3CardGame, true);
           // A special round is immediately completed and locked.
+          const newScores = calculateRoundScores(r.playerStatus, players, rules, gameDetails.is3CardGame, true);
           return { ...r, isSpecial: true, isComplete: true, scores: newScores };
         }
         return r;
