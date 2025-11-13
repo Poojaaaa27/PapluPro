@@ -136,10 +136,10 @@ export function RoundsTable({
                         status={round.playerStatus[player.id]}
                         onStatusChange={onStatusChange}
                         isOrganizer={isOrganizer}
-                        isLocked={isComplete}
+                        isLocked={isComplete || round.isSpecial}
                         is3CardGame={is3CardGame}
                       >
-                         <span className="font-mono text-sm break-words whitespace-pre-wrap">{getStatusString(round.playerStatus[player.id]) || "-"}</span>
+                         <span className="font-mono text-sm break-words whitespace-pre-wrap">{getStatusString(round.playerStatus[player.id], round) || "-"}</span>
                       </PlayerStatusCell>
                     </TableCell>
                   ))}
@@ -201,7 +201,7 @@ export function RoundsTable({
               <CardContent className="space-y-3">
                 {players.map(player => {
                   const status = round.playerStatus[player.id];
-                  const displayString = getStatusString(status) || <span className="text-muted-foreground">Not set</span>;
+                  const displayString = getStatusString(status, round) || <span className="text-muted-foreground">Not set</span>;
                   
                   return (
                     <div key={player.id} className="flex items-center justify-between p-2 rounded-md bg-muted/50">
@@ -215,7 +215,7 @@ export function RoundsTable({
                         status={status}
                         onStatusChange={onStatusChange}
                         isOrganizer={isOrganizer}
-                        isLocked={isComplete}
+                        isLocked={isComplete || round.isSpecial}
                         is3CardGame={is3CardGame}
                       >
                          <div className="font-mono text-sm">{displayString}</div>

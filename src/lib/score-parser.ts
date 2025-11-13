@@ -30,7 +30,7 @@ export function calculateRoundScores(
     // --- Stage 1: 3C and Paplu bonuses (Inter-player transactions) ---
     // These happen even in a special round.
     if (is3CardGame) {
-        const threeCardPlayers = allPlayerStatuses.filter(p => p.status.is3C);
+        const threeCardPlayers = allPlayerStatuses.filter(p => p.status?.is3C);
         threeCardPlayers.forEach(threeCardPlayer => {
             allPlayerStatuses.forEach(otherPlayer => {
                 if (otherPlayer.playerId !== threeCardPlayer.playerId) {
@@ -43,24 +43,13 @@ export function calculateRoundScores(
     
     // In a special round, we stop here.
     if (isSpecial) {
-        // We need to return only the 3C scores. We reset all scores to 0 and re-apply 3C.
-        const specialScores: Record<string, number> = {};
-        players.forEach(p => specialScores[p.id] = 0);
-        if (is3CardGame) {
-            const threeCardPlayers = allPlayerStatuses.filter(p => p.status.is3C);
-            threeCardPlayers.forEach(threeCardPlayer => {
-                allPlayerStatuses.forEach(otherPlayer => {
-                    if (otherPlayer.playerId !== threeCardPlayer.playerId) {
-                        specialScores[threeCardPlayer.playerId] += rules.threeCardHand;
-                        specialScores[otherPlayer.playerId] -= rules.threeCardHand;
-                    }
-                });
-            });
-        }
-        return specialScores;
+        // For special rounds, only 3C scoring applies. All other scores are 0.
+        // We can just return the scores calculated so far.
+        return finalScores;
     }
 
     allPlayerStatuses.forEach(playerData => {
+        if (!playerData.status) return;
         let papluPayment = 0;
         if (playerData.status.papluCount === 1) papluPayment = rules.singlePaplu;
         else if (playerData.status.papluCount === 2) papluPayment = rules.doublePaplu;
@@ -77,12 +66,12 @@ export function calculateRoundScores(
     });
 
     // --- Stage 2: Winner payouts ---
-    const winnerData = allPlayerStatuses.find(p => p.status.outcome === 'Winner');
+    const winnerData = allPlayerStatuses.find(p => p.status?.outcome === 'Winner');
     if (winnerData) {
         const winnerId = winnerData.playerId;
 
         allPlayerStatuses.forEach(loserData => {
-            if (loserData.playerId === winnerId) return; // skip winner
+            if (loserData.playerId === winnerId || !loserData.status) return; // skip winner
 
             const loserId = loserData.playerId;
             const loserStatus = loserData.status;

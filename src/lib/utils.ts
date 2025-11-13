@@ -1,15 +1,21 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { PlayerStatus } from "./types";
+import type { PlayerStatus, GameRound } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function getStatusString(status: PlayerStatus): string {
+export function getStatusString(status: PlayerStatus, round?: GameRound): string {
     if (!status) return "";
     
+    if (round?.isSpecial) {
+        const parts: string[] = [];
+        if (status.is3C) parts.push("3C");
+        return parts.length > 0 ? parts.join(', ') : "0";
+    }
+
     const preRoundParts: string[] = [];
     const postRoundParts: string[] = [];
 
