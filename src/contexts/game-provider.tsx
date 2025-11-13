@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { createContext, useState, useMemo, useCallback, ReactNode, useContext, useEffect } from "react";
+import React, { createContext, useState, useMemo, useCallback, ReactNode, useContext } from "react";
 import type { Player, GameRound, GameDetails, PlayerStatus } from "@/lib/types";
 import { calculateRoundScores } from "@/lib/score-parser";
 import { RulesContext } from "./rules-provider";
@@ -171,14 +171,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
         if (r.id === roundId) {
           const newPlayerStatus: Record<string, PlayerStatus> = {};
           players.forEach(p => {
-            // Preserve 3C status if game allows it, otherwise clear it
-            const current3CStatus = (gameDetails.is3CardGame && r.playerStatus[p.id]?.is3C) || false;
-            newPlayerStatus[p.id] = {
-              ...defaultPlayerStatus,
-              is3C: current3CStatus,
-              points: 0, 
-              outcome: 'Playing'
-            };
+            const originalStatus = r.playerStatus[p.id];
+            // If it's a 3-card game and this player was the 3C winner, preserve only that.
+            if (gameDetails.is3CardGame && originalStatus?.is3C) {
+              newPlayerStatus[p.id] = {
+                ...defaultPlayerStatus,
+                is3C: true,
+              };
+            } else {
+              // Otherwise, completely reset their status.
+              newPlayerStatus[p.id] = { ...defaultPlayerStatus };
+            }
           });
           const newScores = calculateRoundScores(newPlayerStatus, players, rules, gameDetails.is3CardGame);
           return { ...r, playerStatus: newPlayerStatus, scores: newScores, isComplete: false };
