@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import type { PlayerStatus, RoundOutcome, PapluCount } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { Button } from "../ui/button";
+import { Check } from "lucide-react";
 
 interface PlayerStatusPopoverProps {
   children: ReactNode;
@@ -135,6 +137,7 @@ export function PlayerStatusPopover({ children, status, onSave, is3CardGame }: P
                   </SelectContent>
                 </Select>
                 {isPlaying && (
+                    <>
                     <Input
                         id="points-input"
                         type="number"
@@ -144,11 +147,14 @@ export function PlayerStatusPopover({ children, status, onSave, is3CardGame }: P
                             const value = e.target.value;
                             setCurrentStatus(s => ({ ...s, points: value === '' ? null : Number(value) }))
                         }}
-                        onBlur={handlePointsBlur}
                         onKeyDown={handlePointsKeyDown}
                         className="h-8 w-[60px]"
                         autoFocus
                     />
+                    <Button variant="secondary" size="icon" className="h-8 w-8" onClick={handlePointsBlur}>
+                        <Check className="h-4 w-4" />
+                    </Button>
+                    </>
                 )}
               </div>
             </div>
