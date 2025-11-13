@@ -172,15 +172,23 @@ export function GameProvider({ children }: { children: ReactNode }) {
           const newPlayerStatus: Record<string, PlayerStatus> = {};
           players.forEach(p => {
             const originalStatus = r.playerStatus[p.id];
+            
+            // Default to a '0 point' playing status
+            const canceledStatus: PlayerStatus = {
+              ...defaultPlayerStatus,
+              outcome: 'Playing',
+              points: 0,
+            };
+
             // If it's a 3-card game and this player was the 3C winner, preserve only that.
             if (gameDetails.is3CardGame && originalStatus?.is3C) {
               newPlayerStatus[p.id] = {
-                ...defaultPlayerStatus,
+                ...canceledStatus,
                 is3C: true,
+                points: null, // Let score parser handle 3c logic without points interference
               };
             } else {
-              // Otherwise, completely reset their status.
-              newPlayerStatus[p.id] = { ...defaultPlayerStatus };
+              newPlayerStatus[p.id] = canceledStatus;
             }
           });
           const newScores = calculateRoundScores(newPlayerStatus, players, rules, gameDetails.is3CardGame);
