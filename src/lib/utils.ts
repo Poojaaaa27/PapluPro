@@ -12,7 +12,7 @@ export function getStatusString(status: PlayerStatus): string {
       return "Set Status";
     }
 
-    // A status is "unset" if it's the default state.
+    // A status is "unset" if it's the default state (points are null)
     if (status.outcome === 'Playing' && status.points === null && !status.is3C && status.papluCount === 0 && !status.isGate) {
       return "Set Status";
     }
@@ -30,7 +30,7 @@ export function getStatusString(status: PlayerStatus): string {
             parts.push('D');
             break;
         case 'Playing':
-            // Only show points when playing
+            // Only show points if they are not null (i.e., have been explicitly set)
             if (status.points !== null) {
                 parts.push(`${status.points}`);
             }
@@ -48,5 +48,7 @@ export function getStatusString(status: PlayerStatus): string {
     
     const result = parts.join(' | ');
 
+    // If parts are empty but it wasn't the initial "Set Status" state, it means something was cleared.
+    // We should show "Set Status" again.
     return result === "" ? "Set Status" : result;
 }

@@ -23,7 +23,7 @@ const defaultStatus: PlayerStatus = {
     is3C: false,
     papluCount: 0,
     outcome: 'Playing',
-    points: 0,
+    points: null, // Default points to null
     isGate: false,
 }
 
@@ -32,10 +32,13 @@ export function PlayerStatusPopover({ children, status, onSave, is3CardGame }: P
   const [currentStatus, setCurrentStatus] = useState<PlayerStatus>(status || defaultStatus);
 
   useEffect(() => {
-    // Reset internal state when popover opens with new status
     if (isOpen) {
-        // Ensure that if status is null or points are null, it defaults correctly
-        const initialStatus = status ? { ...status, points: status.points ?? 0 } : { ...defaultStatus, points: 0 };
+        // When opening, if status is null/undefined, use the default. If it exists, use it.
+        // If outcome is 'Playing' but points are null, default input to 0 for better UX.
+        const initialStatus = status ? { ...status } : { ...defaultStatus };
+        if (initialStatus.outcome === 'Playing' && initialStatus.points === null) {
+            // This is just for the input field display, not saved yet
+        }
         setCurrentStatus(initialStatus);
     }
   }, [isOpen, status]);
@@ -43,12 +46,12 @@ export function PlayerStatusPopover({ children, status, onSave, is3CardGame }: P
   const handleValueChange = (newPartialStatus: Partial<PlayerStatus>) => {
     let newStatus = { ...currentStatus, ...newPartialStatus };
     
-    // If outcome is changed to something other than 'Playing', reset points.
+    // If outcome is changed to something other than 'Playing', reset points to null.
     if ('outcome' in newPartialStatus && newPartialStatus.outcome !== 'Playing') {
       newStatus.points = null;
     } else if ('outcome' in newPartialStatus && newPartialStatus.outcome === 'Playing') {
-      // If switching back to 'Playing', default points to 0
-      newStatus.points = 0;
+      // If switching back to 'Playing', points remain null until set
+      newStatus.points = currentStatus.points; // Or keep existing points if any
     }
     
     // If not a 3-card game, ensure 3C and paplu are off
@@ -58,23 +61,24 @@ export function PlayerStatusPopover({ children, status, onSave, is3CardGame }: P
     }
     
     setCurrentStatus(newStatus);
-    onSave(newStatus); // Save on any change
+    onSave(newStatus);
     
-    // Close the popover unless the user just switched to 'Playing'
+    // Close the popover unless the user just switched to 'Playing' which shows the input
     if (!(newPartialStatus.outcome && newPartialStatus.outcome === 'Playing')) {
         setIsOpen(false);
     }
   };
 
-  const handlePointsBlur = () => {
-    onSave(currentStatus);
+  const handlePointsConfirm = () => {
+    // When confirming, if points are still null in the internal state, it means 0 should be saved.
+    const newStatus = { ...currentStatus, points: currentStatus.points ?? 0 };
+    onSave(newStatus);
     setIsOpen(false);
   }
 
   const handlePointsKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      onSave(currentStatus);
-      setIsOpen(false);
+      handlePointsConfirm();
     }
   };
 
@@ -147,7 +151,8 @@ export function PlayerStatusPopover({ children, status, onSave, is3CardGame }: P
                         id="points-input"
                         type="number"
                         placeholder="Pts"
-                        value={currentStatus.points ?? ''}
+                        // Display 0 if points are null, otherwise show the points value
+                        value={currentStatus.points ?? 0}
                         onChange={(e) => {
                             const value = e.target.value;
                             setCurrentStatus(s => ({ ...s, points: value === '' ? null : Number(value) }))
@@ -156,7 +161,7 @@ export function PlayerStatusPopover({ children, status, onSave, is3CardGame }: P
                         className="h-8 w-[60px] [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none"
                         autoFocus
                     />
-                    <Button variant="secondary" size="icon" className="h-8 w-8" onClick={handlePointsBlur}>
+                    <Button variant="secondary" size="icon" className="h-8 w-8" onClick={handlePointsConfirm}>
                         <Check className="h-4 w-4" />
                     </Button>
                     </>
