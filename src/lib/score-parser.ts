@@ -22,13 +22,17 @@ export function calculateRoundScores(
 
     if (players.length < 2) return finalScores;
 
+    // If it's a special "wash" round, all scores are 0.
+    if (isSpecial) {
+        return finalScores;
+    }
+
     const allPlayerStatuses = players.map(p => ({
         playerId: p.id,
         status: playerStatusRecord[p.id]
     }));
 
     // --- Stage 1: 3C and Paplu bonuses (Inter-player transactions) ---
-    // These happen even in a special round.
     if (is3CardGame) {
         const threeCardPlayers = allPlayerStatuses.filter(p => p.status?.is3C);
         threeCardPlayers.forEach(threeCardPlayer => {
@@ -39,13 +43,6 @@ export function calculateRoundScores(
                 }
             });
         });
-    }
-    
-    // In a special round, we stop here.
-    if (isSpecial) {
-        // For special rounds, only 3C scoring applies. All other scores are 0.
-        // We can just return the scores calculated so far.
-        return finalScores;
     }
 
     allPlayerStatuses.forEach(playerData => {

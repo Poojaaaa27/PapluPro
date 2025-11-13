@@ -65,7 +65,7 @@ export default function GamePage() {
     }
     
     // 3C winner count validation
-    if (!errorFound && gameDetails.is3CardGame) {
+    if (!errorFound && gameDetails.is3CardGame && !round.isSpecial) {
         const threeCardWinnerCount = Object.values(round.playerStatus).filter(s => s?.is3C).length;
         if (threeCardWinnerCount > 1) {
             newErrors[round.id] = `Must have only 1 3C winner`;
@@ -123,17 +123,14 @@ export default function GamePage() {
     }
     
     // 2. If it's a 3-card game, check for exactly one 3C winner
-    if (gameDetails.is3CardGame) {
+    if (gameDetails.is3CardGame && !round.isSpecial) {
         const threeCardWinnerCount = Object.values(round.playerStatus).filter(s => s?.is3C).length;
         if (threeCardWinnerCount > 1) {
             newErrors[roundId] = `Must have only 1 3C winner`;
             setRoundErrors(newErrors);
             return;
         }
-        // In special rounds, 3C is optional unless points are to be awarded
-        if (round.isSpecial && threeCardWinnerCount < 1) {
-            // This is a valid state for a special round - no error
-        } else if (threeCardWinnerCount < 1) {
+        if (threeCardWinnerCount < 1) {
             newErrors[roundId] = `Must have exactly 1 3C winner`;
             setRoundErrors(newErrors);
             return;

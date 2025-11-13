@@ -136,7 +136,7 @@ export function RoundsTable({
                         status={round.playerStatus[player.id]}
                         onStatusChange={onStatusChange}
                         isOrganizer={isOrganizer}
-                        isLocked={isComplete || round.isSpecial}
+                        isLocked={isComplete}
                         is3CardGame={is3CardGame}
                       >
                          <span className="font-mono text-sm break-words whitespace-pre-wrap">{getStatusString(round.playerStatus[player.id], round) || "-"}</span>
@@ -215,7 +215,7 @@ export function RoundsTable({
                         status={status}
                         onStatusChange={onStatusChange}
                         isOrganizer={isOrganizer}
-                        isLocked={isComplete || round.isSpecial}
+                        isLocked={isComplete}
                         is3CardGame={is3CardGame}
                       >
                          <div className="font-mono text-sm">{displayString}</div>
