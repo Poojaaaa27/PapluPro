@@ -133,9 +133,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setRounds(prevRounds => {
       return prevRounds.map(r => {
         if (r.id === roundId) {
-          const isNowSpecial = !r.isSpecial;
-          const newScores = calculateRoundScores(r.playerStatus, players, rules, gameDetails.is3CardGame, isNowSpecial);
-          return { ...r, isSpecial: isNowSpecial, scores: newScores };
+          const newScores = calculateRoundScores(r.playerStatus, players, rules, gameDetails.is3CardGame, true);
+          // A special round is immediately completed and locked.
+          return { ...r, isSpecial: true, isComplete: true, scores: newScores };
         }
         return r;
       });
