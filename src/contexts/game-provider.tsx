@@ -18,7 +18,7 @@ const defaultPlayerStatus: PlayerStatus = {
   is3C: false,
   papluCount: 0,
   outcome: 'Playing',
-  points: null,
+  points: 0,
   isGate: false,
 };
 

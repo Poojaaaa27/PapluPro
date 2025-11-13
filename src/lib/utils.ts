@@ -8,7 +8,11 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function getStatusString(status: PlayerStatus, round?: GameRound): string {
-    if (!status || (status.outcome === 'Playing' && status.points === null && !status.is3C && status.papluCount === 0 && !status.isGate)) {
+    if (!status) {
+      return "Set Status";
+    }
+
+    if (status.outcome === 'Playing' && status.points === 0 && !status.is3C && status.papluCount === 0 && !status.isGate) {
       return "Set Status";
     }
     
