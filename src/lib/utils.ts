@@ -1,13 +1,13 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { PlayerStatus, GameRound } from "./types";
+import type { PlayerStatus } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function getStatusString(status: PlayerStatus, round?: GameRound): string {
+export function getStatusString(status: PlayerStatus): string {
     if (!status) {
       return "Set Status";
     }
@@ -15,10 +15,6 @@ export function getStatusString(status: PlayerStatus, round?: GameRound): string
     // A status is "unset" if it's the default state.
     if (status.outcome === 'Playing' && status.points === null && !status.is3C && status.papluCount === 0 && !status.isGate) {
       return "Set Status";
-    }
-    
-    if (round?.isSpecial) {
-        return "0";
     }
 
     const parts: string[] = [];

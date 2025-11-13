@@ -18,7 +18,7 @@ const defaultPlayerStatus: PlayerStatus = {
   is3C: false,
   papluCount: 0,
   outcome: 'Playing',
-  points: 0,
+  points: null,
   isGate: false,
 };
 
@@ -36,7 +36,6 @@ const mockRounds: GameRound[] = Array.from({ length: 15 }, (_, i) => ({
   playerStatus: getDefaultPlayerStatuses(mockPlayers),
   scores: {},
   isComplete: false,
-  isSpecial: false,
 }));
 
 interface GameContextType {
@@ -49,7 +48,6 @@ interface GameContextType {
   setGameDetails: React.Dispatch<React.SetStateAction<GameDetails>>;
   handleStatusChange: (roundId: number, playerId: string, newStatus: PlayerStatus) => void;
   toggleRoundCompletion: (roundId: number) => void;
-  toggleSpecialRound: (roundId: number) => void;
   resetGame: () => void;
   totalScores: Record<string, number>;
 }
@@ -65,7 +63,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
       playerStatus: getDefaultPlayerStatuses(players),
       scores: {},
       isComplete: false,
-      isSpecial: false,
     }))
   );
 
@@ -95,7 +92,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         }
       });
       
-      const newScores = calculateRoundScores(relevantPlayerStatus, currentPlayers, rules, gameDetails.is3CardGame, r.isSpecial);
+      const newScores = calculateRoundScores(relevantPlayerStatus, currentPlayers, rules, gameDetails.is3CardGame);
       return { ...r, playerStatus: relevantPlayerStatus, scores: newScores };
     });
   }, [rules, gameDetails.is3CardGame]);
@@ -113,7 +110,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       return prevRounds.map(r => {
         if (r.id === roundId) {
           const newPlayerStatus = { ...r.playerStatus, [playerId]: newStatus };
-          const newScores = calculateRoundScores(newPlayerStatus, players, rules, gameDetails.is3CardGame, r.isSpecial);
+          const newScores = calculateRoundScores(newPlayerStatus, players, rules, gameDetails.is3CardGame);
           return { ...r, playerStatus: newPlayerStatus, scores: newScores };
         }
         return r;
@@ -129,18 +126,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
     );
   };
   
-  const toggleSpecialRound = (roundId: number) => {
-    setRounds(prevRounds => {
-      return prevRounds.map(r => {
-        if (r.id === roundId) {
-          // A special round is immediately completed and locked.
-          const newScores = calculateRoundScores(r.playerStatus, players, rules, gameDetails.is3CardGame, true);
-          return { ...r, isSpecial: true, isComplete: true, scores: newScores };
-        }
-        return r;
-      });
-    });
-  };
 
   const addRound = () => {
     setRounds(prevRounds => {
@@ -150,7 +135,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
             playerStatus: getDefaultPlayerStatuses(players),
             scores: {},
             isComplete: false,
-            isSpecial: false,
         };
         return [...prevRounds, newRound];
     })
@@ -162,7 +146,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
       playerStatus: getDefaultPlayerStatuses(players),
       scores: {},
       isComplete: false,
-      isSpecial: false,
     })));
   };
 
@@ -190,7 +173,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setGameDetails,
     handleStatusChange,
     toggleRoundCompletion,
-    toggleSpecialRound,
     resetGame,
     totalScores
   };

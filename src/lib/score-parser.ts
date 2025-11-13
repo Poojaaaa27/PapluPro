@@ -7,25 +7,19 @@ import type { Player, GameRules, PlayerStatus } from "./types";
  * @param players Array of all players.
  * @param rules The game rules.
  * @param is3CardGame Whether the 3-card winner rule is active.
- * @param isSpecial Whether this is a special "wash" round.
  * @returns A record of player IDs to their calculated scores.
  */
 export function calculateRoundScores(
     playerStatusRecord: Record<string, PlayerStatus>,
     players: Player[],
     rules: GameRules,
-    is3CardGame: boolean,
-    isSpecial: boolean = false
+    is3CardGame: boolean
 ): Record<string, number> {
     const finalScores: Record<string, number> = {};
     players.forEach(p => finalScores[p.id] = 0);
 
     if (players.length < 2) return finalScores;
 
-    // If it's a special "wash" round, all scores are 0.
-    if (isSpecial) {
-        return finalScores;
-    }
 
     const allPlayerStatuses = players.map(p => ({
         playerId: p.id,

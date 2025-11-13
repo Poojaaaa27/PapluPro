@@ -34,7 +34,6 @@ export interface GameRound {
   playerStatus: Record<string, PlayerStatus>; // Player ID -> structured status
   scores: Record<string, number>; // Player ID -> score
   isComplete: boolean;
-  isSpecial?: boolean; // Added for special round type
 }
 
 
