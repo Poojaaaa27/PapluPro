@@ -51,14 +51,25 @@ export function PlayerStatusPopover({ children, status, onSave, is3CardGame }: P
     }
     
     setCurrentStatus(newStatus);
-    onSave(newStatus);
-    setIsOpen(false);
+    onSave(newStatus); // Save on any change
+    
+    // Close the popover unless the user just switched to 'Playing'
+    if (!(newPartialStatus.outcome && newPartialStatus.outcome === 'Playing')) {
+        setIsOpen(false);
+    }
   };
 
   const handlePointsBlur = () => {
     onSave(currentStatus);
     setIsOpen(false);
   }
+
+  const handlePointsKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      onSave(currentStatus);
+      setIsOpen(false);
+    }
+  };
 
   const isPlaying = currentStatus.outcome === 'Playing';
 
@@ -134,7 +145,9 @@ export function PlayerStatusPopover({ children, status, onSave, is3CardGame }: P
                             setCurrentStatus(s => ({ ...s, points: value === '' ? null : Number(value) }))
                         }}
                         onBlur={handlePointsBlur}
+                        onKeyDown={handlePointsKeyDown}
                         className="h-8 w-[60px]"
+                        autoFocus
                     />
                 )}
               </div>
