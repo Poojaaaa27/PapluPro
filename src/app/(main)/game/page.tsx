@@ -6,13 +6,14 @@ import { RoundsTable } from "@/components/game/rounds-table";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useGame } from "@/hooks/use-game";
-import { Save, Trash2, PlusCircle, XCircle } from "lucide-react";
+import { Save, Trash2, PlusCircle, XCircle, RotateCcw } from "lucide-react";
 import { useHistory } from "@/hooks/use-history";
 import { useToast } from "@/hooks/use-toast";
 import type { GameSession } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Gamepad2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function GamePage() {
   const { user } = useAuth();
@@ -26,6 +27,7 @@ export default function GamePage() {
     resetGame,
     addRound,
     cancelRound,
+    isRoundCanceled
   } = useGame();
   const { addGameSession } = useHistory();
   const { toast } = useToast();
@@ -41,6 +43,12 @@ export default function GamePage() {
   // Real-time validation for the current round
   useEffect(() => {
     if (!currentRound) return;
+
+    // Don't validate a canceled round
+    if (isRoundCanceled(currentRound.id)) {
+      setRoundErrors({});
+      return;
+    }
 
     const newErrors: Record<number, string> = {};
     const round = currentRound;
@@ -74,7 +82,7 @@ export default function GamePage() {
     }
     
     setRoundErrors(newErrors);
-  }, [currentRound, rounds, gameDetails.is3CardGame]); // Depend on rounds to catch status changes
+  }, [currentRound, rounds, gameDetails.is3CardGame, isRoundCanceled]); // Depend on rounds to catch status changes
 
   const handleSaveGame = () => {
     const completedRounds = rounds.filter(r => r.isComplete);
@@ -104,6 +112,15 @@ export default function GamePage() {
   const handleToggleComplete = (roundId: number) => {
     const round = rounds.find(r => r.id === roundId);
     if (!round) return;
+
+    // If the round is canceled, completing it should just work with 0 scores.
+    if (isRoundCanceled(roundId)) {
+        if (isOrganizer) {
+          toggleRoundCompletion(roundId);
+        }
+        router.push('/scores');
+        return;
+    }
 
     let newErrors = { ...roundErrors };
     
@@ -170,11 +187,13 @@ export default function GamePage() {
     router.push('/scores');
   }
 
-  const handleCancelRound = () => {
+  const handleCancelClick = () => {
     if (currentRound) {
         cancelRound(currentRound.id);
     }
   }
+
+  const isCurrentRoundCanceled = currentRound ? isRoundCanceled(currentRound.id) : false;
 
   return (
     <div className="py-8">
@@ -188,10 +207,19 @@ export default function GamePage() {
           </p>
         </div>
         {isOrganizer && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button variant="outline" onClick={handleSaveGame}><Save /> Save Game</Button>
             <Button variant="destructive" onClick={resetGame}><Trash2 /> Reset</Button>
-            {currentRound && <Button variant="secondary" onClick={handleCancelRound}><XCircle /> Cancel Round</Button>}
+            {currentRound && 
+              <Button 
+                variant={isCurrentRoundCanceled ? "destructive" : "secondary"} 
+                onClick={handleCancelClick}
+                className={cn(isCurrentRoundCanceled && "bg-amber-600 hover:bg-amber-700 text-white")}
+              >
+                {isCurrentRoundCanceled ? <RotateCcw /> : <XCircle />}
+                {isCurrentRoundCanceled ? "Undo Cancel" : "Cancel Round"}
+              </Button>
+            }
           </div>
         )}
       </div>
@@ -205,6 +233,7 @@ export default function GamePage() {
             isOrganizer={isOrganizer}
             roundErrors={roundErrors}
             is3CardGame={gameDetails.is3CardGame}
+            isCanceled={isCurrentRoundCanceled}
         />
       ) : (
         <Alert>

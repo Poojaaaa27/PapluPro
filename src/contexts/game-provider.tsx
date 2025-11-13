@@ -51,6 +51,7 @@ interface GameContextType {
   resetGame: () => void;
   totalScores: Record<string, number>;
   cancelRound: (roundId: number) => void;
+  isRoundCanceled: (roundId: number) => boolean;
 }
 
 export const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -73,6 +74,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     date: format(new Date(), 'yyyy-MM-dd'),
     is3CardGame: true,
   });
+
+  const [preCanceledStates, setPreCanceledStates] = useState<Record<number, Record<string, PlayerStatus>>>({});
 
   const rulesContext = useContext(RulesContext);
   if (!rulesContext) {
@@ -110,6 +113,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setRounds(prevRounds => {
       return prevRounds.map(r => {
         if (r.id === roundId) {
+          // If status change happens, the round is no longer "canceled"
+          setPreCanceledStates(prev => {
+            const newStates = { ...prev };
+            delete newStates[roundId];
+            return newStates;
+          });
           const newPlayerStatus = { ...r.playerStatus, [playerId]: newStatus };
           const newScores = calculateRoundScores(newPlayerStatus, players, rules, gameDetails.is3CardGame);
           return { ...r, playerStatus: newPlayerStatus, scores: newScores };
@@ -128,18 +137,47 @@ export function GameProvider({ children }: { children: ReactNode }) {
   };
   
   const cancelRound = (roundId: number) => {
+    const roundToCancel = rounds.find(r => r.id === roundId);
+    if (!roundToCancel) return;
+
+    // Check if we need to UN-cancel
+    if (preCanceledStates[roundId]) {
+      setRounds(prevRounds =>
+        prevRounds.map(r => {
+          if (r.id === roundId) {
+            const restoredPlayerStatus = preCanceledStates[roundId];
+            const newScores = calculateRoundScores(restoredPlayerStatus, players, rules, gameDetails.is3CardGame);
+            return { ...r, playerStatus: restoredPlayerStatus, scores: newScores };
+          }
+          return r;
+        })
+      );
+      setPreCanceledStates(prev => {
+        const newStates = { ...prev };
+        delete newStates[roundId];
+        return newStates;
+      });
+      return;
+    }
+
+    // Otherwise, CANCEL the round
+    setPreCanceledStates(prev => ({
+      ...prev,
+      [roundId]: roundToCancel.playerStatus,
+    }));
+
     setRounds(prevRounds => {
       return prevRounds.map(r => {
         if (r.id === roundId) {
           const newPlayerStatus: Record<string, PlayerStatus> = {};
           players.forEach(p => {
-            const current3CStatus = r.playerStatus[p.id]?.is3C || false;
+            // Preserve 3C status if game allows it, otherwise clear it
+            const current3CStatus = (gameDetails.is3CardGame && r.playerStatus[p.id]?.is3C) || false;
             newPlayerStatus[p.id] = {
               ...defaultPlayerStatus,
-              // Preserve 3C status only if it's a 3 card game
-              is3C: gameDetails.is3CardGame ? current3CStatus : false,
-              points: 0, // Explicitly set points to 0
-              outcome: 'Playing' // Set outcome to playing to reflect 0 points
+              is3C: current3CStatus,
+              points: 0, 
+              outcome: 'Playing'
             };
           });
           const newScores = calculateRoundScores(newPlayerStatus, players, rules, gameDetails.is3CardGame);
@@ -149,6 +187,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
       });
     });
   };
+
+  const isRoundCanceled = (roundId: number) => {
+    return preCanceledStates[roundId] !== undefined;
+  }
 
   const addRound = () => {
     setRounds(prevRounds => {
@@ -170,6 +212,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       scores: {},
       isComplete: false,
     })));
+    setPreCanceledStates({});
   };
 
   const totalScores = useMemo(() => {
@@ -197,6 +240,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     handleStatusChange,
     toggleRoundCompletion,
     cancelRound,
+    isRoundCanceled,
     resetGame,
     totalScores
   };

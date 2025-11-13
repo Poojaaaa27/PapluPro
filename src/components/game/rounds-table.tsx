@@ -27,7 +27,8 @@ interface RoundsTableProps {
   onToggleComplete?: (roundId: number) => void;
   isOrganizer: boolean;
   roundErrors?: Record<number, string>;
-  is3CardGame?: boolean; // Make optional for history page
+  is3CardGame?: boolean;
+  isCanceled?: boolean;
 }
 
 function PlayerStatusCell({
@@ -77,6 +78,7 @@ export function RoundsTable({
   isOrganizer,
   roundErrors = {},
   is3CardGame = true, // Default to true for backward compatibility on history page
+  isCanceled = false,
 }: RoundsTableProps) {
   
   return (
@@ -106,7 +108,9 @@ export function RoundsTable({
               const isComplete = round.isComplete;
               const hasError = !!roundErrors[round.id];
 
-              const rowBgClass = hasError
+              const rowBgClass = isCanceled
+                ? "bg-muted/60"
+                : hasError
                 ? "bg-destructive/10"
                 : isComplete
                 ? "bg-green-100/50 dark:bg-green-900/40"
@@ -120,6 +124,7 @@ export function RoundsTable({
                   <TableCell className="w-[150px] font-medium text-center sticky left-0 z-10 bg-inherit border-r">
                     <div className="flex flex-col items-center justify-center">
                       <span className="font-bold text-lg">{round.id}</span>
+                       {isCanceled && <span className="text-xs font-bold text-muted-foreground">(CANCELED)</span>}
                       {hasError && (
                           <div className="flex items-center gap-1 text-destructive text-xs mt-1 text-center max-w-[120px]">
                               <AlertCircle className="h-3 w-3 shrink-0" />
@@ -136,7 +141,7 @@ export function RoundsTable({
                         status={round.playerStatus[player.id]}
                         onStatusChange={onStatusChange}
                         isOrganizer={isOrganizer}
-                        isLocked={isComplete}
+                        isLocked={isComplete || isCanceled}
                         is3CardGame={is3CardGame}
                       >
                          <span className="font-mono text-sm break-words whitespace-pre-wrap">{getStatusString(round.playerStatus[player.id]) || "-"}</span>
@@ -168,7 +173,9 @@ export function RoundsTable({
         {rounds.map(round => {
           const isComplete = round.isComplete;
           const hasError = !!roundErrors[round.id];
-          const cardBgClass = hasError
+          const cardBgClass = isCanceled
+            ? "bg-muted/60"
+            : hasError
             ? "bg-destructive/10 border-destructive"
             : isComplete
             ? "bg-green-100/50 dark:bg-green-900/40 border-green-500/50"
@@ -178,7 +185,10 @@ export function RoundsTable({
             <Card key={round.id} className={cn(cardBgClass)}>
               <CardHeader>
                 <CardTitle className="flex justify-between items-center font-headline">
-                  <span>Round {round.id}</span>
+                  <span>
+                    Round {round.id}
+                    {isCanceled && <span className="text-xs font-bold text-muted-foreground ml-2">(CANCELED)</span>}
+                  </span>
                   {isOrganizer && onToggleComplete && (
                     isComplete ? (
                         <Button variant="outline" size="sm" onClick={() => onToggleComplete(round.id)}>
@@ -215,7 +225,7 @@ export function RoundsTable({
                         status={status}
                         onStatusChange={onStatusChange}
                         isOrganizer={isOrganizer}
-                        isLocked={isComplete}
+                        isLocked={isComplete || isCanceled}
                         is3CardGame={is3CardGame}
                       >
                          <div className="font-mono text-sm">{displayString}</div>
