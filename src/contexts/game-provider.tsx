@@ -50,6 +50,7 @@ interface GameContextType {
   toggleRoundCompletion: (roundId: number) => void;
   resetGame: () => void;
   totalScores: Record<string, number>;
+  cancelRound: (roundId: number) => void;
 }
 
 export const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -126,6 +127,28 @@ export function GameProvider({ children }: { children: ReactNode }) {
     );
   };
   
+  const cancelRound = (roundId: number) => {
+    setRounds(prevRounds => {
+      return prevRounds.map(r => {
+        if (r.id === roundId) {
+          const newPlayerStatus: Record<string, PlayerStatus> = {};
+          players.forEach(p => {
+            const current3CStatus = r.playerStatus[p.id]?.is3C || false;
+            newPlayerStatus[p.id] = {
+              ...defaultPlayerStatus,
+              // Preserve 3C status only if it's a 3 card game
+              is3C: gameDetails.is3CardGame ? current3CStatus : false,
+              points: 0, // Explicitly set points to 0
+              outcome: 'Playing' // Set outcome to playing to reflect 0 points
+            };
+          });
+          const newScores = calculateRoundScores(newPlayerStatus, players, rules, gameDetails.is3CardGame);
+          return { ...r, playerStatus: newPlayerStatus, scores: newScores, isComplete: false };
+        }
+        return r;
+      });
+    });
+  };
 
   const addRound = () => {
     setRounds(prevRounds => {
@@ -173,6 +196,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setGameDetails,
     handleStatusChange,
     toggleRoundCompletion,
+    cancelRound,
     resetGame,
     totalScores
   };

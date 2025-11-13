@@ -6,7 +6,7 @@ import { RoundsTable } from "@/components/game/rounds-table";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useGame } from "@/hooks/use-game";
-import { Save, Trash2, PlusCircle, CheckCircle } from "lucide-react";
+import { Save, Trash2, PlusCircle, XCircle } from "lucide-react";
 import { useHistory } from "@/hooks/use-history";
 import { useToast } from "@/hooks/use-toast";
 import type { GameSession } from "@/lib/types";
@@ -25,6 +25,7 @@ export default function GamePage() {
     toggleRoundCompletion,
     resetGame,
     addRound,
+    cancelRound,
   } = useGame();
   const { addGameSession } = useHistory();
   const { toast } = useToast();
@@ -169,6 +170,12 @@ export default function GamePage() {
     router.push('/scores');
   }
 
+  const handleCancelRound = () => {
+    if (currentRound) {
+        cancelRound(currentRound.id);
+    }
+  }
+
   return (
     <div className="py-8">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
@@ -184,6 +191,7 @@ export default function GamePage() {
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleSaveGame}><Save /> Save Game</Button>
             <Button variant="destructive" onClick={resetGame}><Trash2 /> Reset</Button>
+            {currentRound && <Button variant="secondary" onClick={handleCancelRound}><XCircle /> Cancel Round</Button>}
           </div>
         )}
       </div>

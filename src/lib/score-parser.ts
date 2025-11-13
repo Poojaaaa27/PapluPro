@@ -80,6 +80,7 @@ export function calculateRoundScores(
                     break;
                 case 'Playing':
                     // Points are from the loser's hand, so they are a positive value.
+                    // A canceled round will have points=0, so this calculates correctly.
                     amountOwed = Math.abs(loserStatus.points || 0) * rules.perPoint;
                     break;
             }
