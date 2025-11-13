@@ -12,7 +12,8 @@ export function getStatusString(status: PlayerStatus, round?: GameRound): string
       return "Set Status";
     }
 
-    if (status.outcome === 'Playing' && status.points === 0 && !status.is3C && status.papluCount === 0 && !status.isGate) {
+    // A status is "unset" if it's the default state.
+    if (status.outcome === 'Playing' && status.points === null && !status.is3C && status.papluCount === 0 && !status.isGate) {
       return "Set Status";
     }
     
@@ -20,43 +21,36 @@ export function getStatusString(status: PlayerStatus, round?: GameRound): string
         return "0";
     }
 
-    const preRoundParts: string[] = [];
-    const postRoundParts: string[] = [];
+    const parts: string[] = [];
 
     // Pre-round bonuses / special cards
-    if (status.is3C) preRoundParts.push("3C");
-    if (status.papluCount > 0) preRoundParts.push(`${status.papluCount}P`);
-    if (status.isGate) preRoundParts.push('G');
+    if (status.is3C) parts.push("3C");
+    if (status.papluCount > 0) parts.push(`${status.papluCount}P`);
+    if (status.isGate) parts.push('G');
     
     // Post-round outcome
     switch(status.outcome) {
         case 'Winner':
-            postRoundParts.push('D');
+            parts.push('D');
             break;
         case 'Playing':
-            if(status.points !== null) {
-                // For playing, points can be 0. We want to display it.
-                postRoundParts.push(`${status.points}`);
+            // Only show points when playing
+            if (status.points !== null) {
+                parts.push(`${status.points}`);
             }
             break;
         case 'Full':
-            postRoundParts.push('F');
+            parts.push('F');
             break;
         case 'Scoot':
-            postRoundParts.push('S');
+            parts.push('S');
             break;
         case 'MidScoot':
-            postRoundParts.push('MS');
+            parts.push('MS');
             break;
     }
-
-    const preRoundString = preRoundParts.join(', ');
-    const postRoundString = postRoundParts.join(', ');
-
-    if (preRoundString && postRoundString && postRoundString !== "null") {
-        return `${preRoundString} | ${postRoundString}`;
-    }
     
-    const result = postRoundString !== "null" ? postRoundString || preRoundString : preRoundString;
+    const result = parts.join(' | ');
+
     return result === "" ? "Set Status" : result;
 }
