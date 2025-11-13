@@ -6,7 +6,7 @@ import { RoundsTable } from "@/components/game/rounds-table";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useGame } from "@/hooks/use-game";
-import { Save, Trash2, PlusCircle, CheckCircle } from "lucide-react";
+import { Save, Trash2, PlusCircle, CheckCircle, Sparkles } from "lucide-react";
 import { useHistory } from "@/hooks/use-history";
 import { useToast } from "@/hooks/use-toast";
 import type { GameSession } from "@/lib/types";
@@ -23,6 +23,7 @@ export default function GamePage() {
     gameDetails, 
     handleStatusChange,
     toggleRoundCompletion,
+    toggleSpecialRound,
     resetGame,
     addRound,
   } = useGame();
@@ -55,7 +56,7 @@ export default function GamePage() {
     }
 
     // Winner (D) count validation
-    if (!errorFound) {
+    if (!errorFound && !round.isSpecial) { // Don't validate winner for special rounds
       const winnerCount = Object.values(round.playerStatus).filter(s => s?.outcome === 'Winner').length;
       if (winnerCount > 1) {
           newErrors[round.id] = `Must have only 1 winner (D)`;
@@ -111,12 +112,14 @@ export default function GamePage() {
 
     // --- VALIDATION RULES ---
 
-    // 1. Check for exactly one winner
-    const winnerCount = Object.values(round.playerStatus).filter(s => s?.outcome === 'Winner').length;
-    if (winnerCount !== 1) {
-        newErrors[roundId] = `Must have exactly 1 winner (D)`;
-        setRoundErrors(newErrors);
-        return;
+    // 1. Check for exactly one winner (unless it's a special round)
+    if (!round.isSpecial) {
+        const winnerCount = Object.values(round.playerStatus).filter(s => s?.outcome === 'Winner').length;
+        if (winnerCount !== 1) {
+            newErrors[roundId] = `Must have exactly 1 winner (D)`;
+            setRoundErrors(newErrors);
+            return;
+        }
     }
     
     // 2. If it's a 3-card game, check for exactly one 3C winner
@@ -127,7 +130,10 @@ export default function GamePage() {
             setRoundErrors(newErrors);
             return;
         }
-         if (threeCardWinnerCount < 1) {
+        // In special rounds, 3C is optional unless points are to be awarded
+        if (round.isSpecial && threeCardWinnerCount < 1) {
+            // This is a valid state for a special round - no error
+        } else if (threeCardWinnerCount < 1) {
             newErrors[roundId] = `Must have exactly 1 3C winner`;
             setRoundErrors(newErrors);
             return;
@@ -135,7 +141,7 @@ export default function GamePage() {
     }
     
     // 3. Check Paplu count if it's a 3-card game
-    if (gameDetails.is3CardGame) {
+    if (gameDetails.is3CardGame && !round.isSpecial) {
       const totalPapluInRound = Object.values(round.playerStatus).reduce((sum, status) => sum + (status?.papluCount || 0), 0);
       if (totalPapluInRound > 3) {
         newErrors[round.id] = `Too many paplus (max 3)`;
@@ -144,18 +150,20 @@ export default function GamePage() {
       }
     }
 
-    // 4. Check if every player has either an outcome or points
-    const incompletePlayer = players.find(p => {
-        const status = round.playerStatus[p.id];
-        if (!status) return true; // Should not happen, but defensive
-        // A player is incomplete if they are 'Playing' but have no points entered.
-        return status.outcome === 'Playing' && (status.points === null || status.points === undefined);
-    });
+    // 4. Check if every player has either an outcome or points (not applicable for special rounds)
+    if (!round.isSpecial) {
+      const incompletePlayer = players.find(p => {
+          const status = round.playerStatus[p.id];
+          if (!status) return true; // Should not happen, but defensive
+          // A player is incomplete if they are 'Playing' but have no points entered.
+          return status.outcome === 'Playing' && (status.points === null || status.points === undefined);
+      });
 
-    if (incompletePlayer) {
-        newErrors[roundId] = `All players must have points or an outcome (F, S, MS)`;
-        setRoundErrors(newErrors);
-        return;
+      if (incompletePlayer) {
+          newErrors[roundId] = `All players must have points or an outcome (F, S, MS)`;
+          setRoundErrors(newErrors);
+          return;
+      }
     }
 
     // --- END VALIDATION ---
@@ -182,6 +190,9 @@ export default function GamePage() {
         </div>
         {isOrganizer && (
           <div className="flex gap-2">
+            {currentRound && 
+              <Button variant={currentRound.isSpecial ? "default" : "outline"} onClick={() => toggleSpecialRound(currentRound.id)}><Sparkles /> Special</Button>
+            }
             <Button variant="outline" onClick={handleSaveGame}><Save /> Save Game</Button>
             <Button variant="destructive" onClick={resetGame}><Trash2 /> Reset</Button>
           </div>
@@ -189,17 +200,15 @@ export default function GamePage() {
       </div>
 
       {currentRound ? (
-        <>
-            <RoundsTable 
-                rounds={[currentRound]}
-                players={players}
-                onStatusChange={handleStatusChange}
-                onToggleComplete={handleToggleComplete}
-                isOrganizer={isOrganizer}
-                roundErrors={roundErrors}
-                is3CardGame={gameDetails.is3CardGame}
-            />
-        </>
+        <RoundsTable 
+            rounds={[currentRound]}
+            players={players}
+            onStatusChange={handleStatusChange}
+            onToggleComplete={handleToggleComplete}
+            isOrganizer={isOrganizer}
+            roundErrors={roundErrors}
+            is3CardGame={gameDetails.is3CardGame}
+        />
       ) : (
         <Alert>
             <Gamepad2 className="h-4 w-4" />

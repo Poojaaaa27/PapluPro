@@ -7,13 +7,15 @@ import type { Player, GameRules, PlayerStatus } from "./types";
  * @param players Array of all players.
  * @param rules The game rules.
  * @param is3CardGame Whether the 3-card winner rule is active.
+ * @param isSpecial Whether this is a special "wash" round.
  * @returns A record of player IDs to their calculated scores.
  */
 export function calculateRoundScores(
     playerStatusRecord: Record<string, PlayerStatus>,
     players: Player[],
     rules: GameRules,
-    is3CardGame: boolean
+    is3CardGame: boolean,
+    isSpecial: boolean = false
 ): Record<string, number> {
     const finalScores: Record<string, number> = {};
     players.forEach(p => finalScores[p.id] = 0);
@@ -26,6 +28,7 @@ export function calculateRoundScores(
     }));
 
     // --- Stage 1: 3C and Paplu bonuses (Inter-player transactions) ---
+    // These happen even in a special round.
     if (is3CardGame) {
         const threeCardPlayers = allPlayerStatuses.filter(p => p.status.is3C);
         threeCardPlayers.forEach(threeCardPlayer => {
@@ -36,6 +39,25 @@ export function calculateRoundScores(
                 }
             });
         });
+    }
+    
+    // In a special round, we stop here.
+    if (isSpecial) {
+        // We need to return only the 3C scores. We reset all scores to 0 and re-apply 3C.
+        const specialScores: Record<string, number> = {};
+        players.forEach(p => specialScores[p.id] = 0);
+        if (is3CardGame) {
+            const threeCardPlayers = allPlayerStatuses.filter(p => p.status.is3C);
+            threeCardPlayers.forEach(threeCardPlayer => {
+                allPlayerStatuses.forEach(otherPlayer => {
+                    if (otherPlayer.playerId !== threeCardPlayer.playerId) {
+                        specialScores[threeCardPlayer.playerId] += rules.threeCardHand;
+                        specialScores[otherPlayer.playerId] -= rules.threeCardHand;
+                    }
+                });
+            });
+        }
+        return specialScores;
     }
 
     allPlayerStatuses.forEach(playerData => {
