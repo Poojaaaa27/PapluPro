@@ -113,8 +113,24 @@ export default function GamePage() {
     const round = rounds.find(r => r.id === roundId);
     if (!round) return;
 
-    // If the round is canceled, completing it should just work with 0 scores.
+    let newErrors = { ...roundErrors };
+    // Clear previous error for this round before re-validating
+    delete newErrors[roundId];
+    setRoundErrors(newErrors); // Clear immediately for better UX
+
+    // If the round is canceled, handle its specific completion logic
     if (isRoundCanceled(roundId)) {
+        if (gameDetails.is3CardGame) {
+            const threeCardWinnerCount = Object.values(round.playerStatus).filter(s => s?.is3C).length;
+            if (threeCardWinnerCount !== 1) {
+                setRoundErrors(prev => ({
+                    ...prev,
+                    [roundId]: "A canceled 3C game must have one 3C winner to complete."
+                }));
+                return;
+            }
+        }
+        
         if (isOrganizer) {
           toggleRoundCompletion(roundId);
         }
@@ -122,12 +138,8 @@ export default function GamePage() {
         return;
     }
 
-    let newErrors = { ...roundErrors };
-    
-    // Clear previous error for this round before re-validating
-    delete newErrors[roundId];
 
-    // --- VALIDATION RULES ---
+    // --- VALIDATION RULES FOR NORMAL ROUNDS ---
 
     // 1. Check for exactly one winner
     const winnerCount = Object.values(round.playerStatus).filter(s => s?.outcome === 'Winner').length;
