@@ -14,6 +14,7 @@ interface HistoryContextType {
   gameHistory: GameSession[];
   addGameSession: (session: Omit<GameSession, 'id'>) => void;
   deleteGameSession: (sessionId: string) => void;
+  updateGameSession: (sessionId: string, updatedSession: GameSession) => void;
   loading: boolean;
 }
 
@@ -69,11 +70,20 @@ export function HistoryProvider({ children }: { children: ReactNode }) {
   const deleteGameSession = (sessionId: string) => {
     setGameHistory(prevHistory => prevHistory.filter(session => session.id !== sessionId));
   };
+  
+  const updateGameSession = (sessionId: string, updatedSession: GameSession) => {
+    setGameHistory(prevHistory => 
+      prevHistory.map(session => 
+        session.id === sessionId ? updatedSession : session
+      )
+    );
+  };
 
   const value = {
     gameHistory,
     addGameSession,
     deleteGameSession,
+    updateGameSession,
     loading,
   };
 

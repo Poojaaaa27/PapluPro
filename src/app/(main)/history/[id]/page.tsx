@@ -13,11 +13,12 @@ import { RoundsTable } from "@/components/game/rounds-table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
 
 export default function GameHistoryDetailPage() {
     const router = useRouter();
     const params = useParams();
-    const { gameHistory, loading: historyLoading } = useHistory();
+    const { gameHistory, loading: historyLoading, updateGameSession } = useHistory();
     const [gameSession, setGameSession] = useState<GameSession | null>(null);
 
     const gameId = Array.isArray(params.id) ? params.id[0] : params.id;
@@ -26,7 +27,6 @@ export default function GameHistoryDetailPage() {
         if (!historyLoading && gameId) {
             const session = gameHistory.find(g => g.id === gameId);
             if (session) {
-                // Temporary migration for old data format
                 const migratedSession = {
                     ...session,
                     rounds: session.rounds.map(r => ({
@@ -35,12 +35,9 @@ export default function GameHistoryDetailPage() {
                     }))
                 };
                 setGameSession(migratedSession);
-            } else {
-                // Optional: redirect if game not found
-                // router.push('/history');
             }
         }
-    }, [gameId, gameHistory, historyLoading, router]);
+    }, [gameId, gameHistory, historyLoading]);
 
     const totalScores = useMemo(() => {
         if (!gameSession) return {};
@@ -75,6 +72,22 @@ export default function GameHistoryDetailPage() {
         }
         return name.substring(0, 2);
     }
+
+    const handlePlayerNameChange = (playerId: string, newName: string) => {
+        if (!gameSession) return;
+    
+        const updatedPlayers = gameSession.players.map(p => 
+            p.id === playerId ? { ...p, name: newName } : p
+        );
+    
+        const updatedGameSession: GameSession = {
+            ...gameSession,
+            players: updatedPlayers,
+        };
+    
+        setGameSession(updatedGameSession);
+        updateGameSession(gameSession.id, updatedGameSession);
+    };
 
     if (historyLoading || !gameSession) {
         return (
@@ -116,21 +129,25 @@ export default function GameHistoryDetailPage() {
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline">Final Standings</CardTitle>
-                    <CardDescription>The leaderboard for this game session.</CardDescription>
+                    <CardDescription>The leaderboard for this game session. Player names can be edited here.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">
-                        {sortedPlayers.map((player, index) => {
+                        {sortedPlayers.map((player) => {
                             const isWinner = player.score === winningScore && winningScore > 0;
                             return (
                                 <div key={player.id} className={cn("flex items-center justify-between p-3 rounded-lg", isWinner ? "bg-amber-100 dark:bg-amber-900/30" : "bg-muted/50")}>
-                                    <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-4 flex-1">
                                         <Avatar className="h-10 w-10">
                                             <AvatarImage src={`https://avatar.vercel.sh/${player.name}.png`} alt={player.name} />
                                             <AvatarFallback>{getInitials(player.name)}</AvatarFallback>
                                         </Avatar>
-                                        <div>
-                                            <p className="font-bold font-headline text-lg">{player.name}</p>
+                                        <div className="flex-1">
+                                            <Input
+                                                value={player.name}
+                                                onChange={(e) => handlePlayerNameChange(player.id, e.target.value)}
+                                                className="font-bold font-headline text-lg p-0 border-none h-auto bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                                            />
                                             {isWinner && <p className="text-sm text-amber-600 dark:text-amber-400 flex items-center gap-1"><Crown className="w-4 h-4" /> Winner</p>}
                                         </div>
                                     </div>
