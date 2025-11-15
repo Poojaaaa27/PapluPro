@@ -43,6 +43,13 @@ export function GameSetupForm({ players, setPlayers, gameDetails, setGameDetails
     setPlayers(updatedPlayers);
   };
 
+  const handlePlayerNameChange = (id: string, newName: string) => {
+    const updatedPlayers = players.map(player => 
+        player.id === id ? { ...player, name: newName } : player
+    );
+    setPlayers(updatedPlayers);
+  };
+
   const handleStartGame = () => {
       router.push('/game');
   }
@@ -118,7 +125,10 @@ export function GameSetupForm({ players, setPlayers, gameDetails, setGameDetails
           <div className="space-y-2">
             {players.map((player) => (
               <div key={player.id} className="flex items-center gap-2">
-                <Input value={player.name} readOnly className="bg-muted" />
+                <Input 
+                    value={player.name} 
+                    onChange={(e) => handlePlayerNameChange(player.id, e.target.value)}
+                />
                 <Button variant="ghost" size="icon" onClick={() => removePlayer(player.id)}>
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
