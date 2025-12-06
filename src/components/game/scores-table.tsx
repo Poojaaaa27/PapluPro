@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -81,16 +82,18 @@ export function ScoresTable({ rounds, players, totalScores }: ScoresTableProps) 
               <TableBody>
                 {rounds.map((round) => {
                   const roundTotal = getRoundTotal(round);
-                  const hasScores = Object.values(round.scores).some(score => score !== 0);
+                  // Only show score row if the round has players in it.
+                  const hasPlayersInRound = Object.keys(round.playerStatus).length > 0;
+                  if (!hasPlayersInRound) return null;
 
                   return (
                     <TableRow key={round.id}>
                       <TableCell className="font-semibold text-center align-middle">{round.id}</TableCell>
                       {players.map(player => {
-                        const roundScore = round.scores[player.id] || 0;
+                        const roundScore = round.scores[player.id];
                         return (
                           <TableCell key={player.id} className="text-center align-middle">
-                            {hasScores && (
+                            {roundScore !== undefined ? (
                               <span
                                 className={cn(
                                   roundScore > 0 && "text-green-600",
@@ -99,12 +102,14 @@ export function ScoresTable({ rounds, players, totalScores }: ScoresTableProps) 
                               >
                                 {roundScore}
                               </span>
+                            ) : (
+                                "" // Empty cell if player wasn't in this round
                             )}
                           </TableCell>
                         );
                       })}
                       <TableCell className="font-semibold text-center align-middle text-muted-foreground">
-                        {hasScores ? roundTotal : ''}
+                        {roundTotal}
                       </TableCell>
                     </TableRow>
                   );
@@ -117,3 +122,5 @@ export function ScoresTable({ rounds, players, totalScores }: ScoresTableProps) 
     </div>
   );
 }
+
+    

@@ -6,14 +6,17 @@ import { RoundsTable } from "@/components/game/rounds-table";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useGame } from "@/hooks/use-game";
-import { Save, Trash2, PlusCircle, XCircle, RotateCcw } from "lucide-react";
+import { Save, Trash2, PlusCircle, XCircle, RotateCcw, UserPlus } from "lucide-react";
 import { useHistory } from "@/hooks/use-history";
 import { useToast } from "@/hooks/use-toast";
-import type { GameSession } from "@/lib/types";
+import type { GameSession, Player } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Gamepad2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function GamePage() {
   const { user } = useAuth();
@@ -27,12 +30,14 @@ export default function GamePage() {
     resetGame,
     addRound,
     cancelRound,
-    isRoundCanceled
+    isRoundCanceled,
+    addPlayer,
   } = useGame();
   const { addGameSession } = useHistory();
   const { toast } = useToast();
   
   const [roundErrors, setRoundErrors] = useState<Record<number, string>>({});
+  const [newPlayerName, setNewPlayerName] = useState('');
 
   const isOrganizer = user?.role === 'organizer';
 
@@ -83,6 +88,26 @@ export default function GamePage() {
     
     setRoundErrors(newErrors);
   }, [currentRound, rounds, gameDetails.is3CardGame, isRoundCanceled]); // Depend on rounds to catch status changes
+
+  const handleAddPlayer = () => {
+    if (newPlayerName.trim() && isOrganizer) {
+      const existingPlayer = players.find(p => p.name.toLowerCase() === newPlayerName.trim().toLowerCase());
+      if (existingPlayer) {
+        toast({
+          variant: "destructive",
+          title: "Player Exists",
+          description: `A player named "${newPlayerName}" is already in the game.`,
+        });
+        return;
+      }
+      addPlayer(newPlayerName.trim());
+      setNewPlayerName('');
+      toast({
+        title: "Player Added",
+        description: `"${newPlayerName}" has joined the game.`,
+      });
+    }
+  };
 
   const handleSaveGame = () => {
     const completedRounds = rounds.filter(r => r.isComplete);
@@ -176,8 +201,10 @@ export default function GamePage() {
 
     // 4. Check if every player has either an outcome or points
     const incompletePlayer = players.find(p => {
+        // Only check players who are actually part of this round
+        if (!round.playerStatus[p.id]) return false;
+
         const status = round.playerStatus[p.id];
-        if (!status) return true; // Should not happen, but defensive
         // A player is incomplete if they are 'Playing' but have no points entered.
         return status.outcome === 'Playing' && (status.points === null || status.points === undefined);
     });
@@ -208,8 +235,8 @@ export default function GamePage() {
   const isCurrentRoundCanceled = currentRound ? isRoundCanceled(currentRound.id) : false;
 
   return (
-    <div className="py-8">
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+    <div className="py-8 space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold font-headline tracking-tight">
             {currentRound ? `Current Round: ${currentRound.id}` : "Game Complete"}
@@ -235,6 +262,27 @@ export default function GamePage() {
           </div>
         )}
       </div>
+
+      {isOrganizer && currentRound && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-headline">Add Player Mid-Game</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+                <Label htmlFor="new-player-name" className="sr-only">Player Name</Label>
+                <Input 
+                  id="new-player-name"
+                  value={newPlayerName} 
+                  onChange={(e) => setNewPlayerName(e.target.value)} 
+                  placeholder="Enter new player's name" 
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddPlayer()}
+                />
+                <Button onClick={handleAddPlayer}><UserPlus /> Add</Button>
+              </div>
+          </CardContent>
+        </Card>
+      )}
 
       {currentRound ? (
         <RoundsTable 
@@ -269,3 +317,5 @@ export default function GamePage() {
     </div>
   );
 }
+
+    

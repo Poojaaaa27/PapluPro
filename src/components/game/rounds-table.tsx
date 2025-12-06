@@ -133,21 +133,28 @@ export function RoundsTable({
                       )}
                     </div>
                   </TableCell>
-                  {players.map((player) => (
-                    <TableCell key={player.id} className={cn("p-1 text-center", isComplete && "cursor-not-allowed")}>
-                      <PlayerStatusCell
-                        roundId={round.id}
-                        playerId={player.id}
-                        status={round.playerStatus[player.id]}
-                        onStatusChange={onStatusChange}
-                        isOrganizer={isOrganizer}
-                        isLocked={isComplete || isCanceled}
-                        is3CardGame={is3CardGame}
-                      >
-                         <span className="font-mono text-sm break-words whitespace-pre-wrap">{getStatusString(round.playerStatus[player.id]) || "-"}</span>
-                      </PlayerStatusCell>
-                    </TableCell>
-                  ))}
+                  {players.map((player) => {
+                    const playerStatus = round.playerStatus[player.id];
+                    // If the player status is undefined for this round, they weren't in it. Show an empty cell.
+                    if (playerStatus === undefined) {
+                      return <TableCell key={player.id} className="p-1 text-center bg-muted/30"></TableCell>;
+                    }
+                    return (
+                      <TableCell key={player.id} className={cn("p-1 text-center", isComplete && "cursor-not-allowed")}>
+                        <PlayerStatusCell
+                          roundId={round.id}
+                          playerId={player.id}
+                          status={playerStatus}
+                          onStatusChange={onStatusChange}
+                          isOrganizer={isOrganizer}
+                          isLocked={isComplete || isCanceled}
+                          is3CardGame={is3CardGame}
+                        >
+                           <span className="font-mono text-sm break-words whitespace-pre-wrap">{getStatusString(playerStatus) || "-"}</span>
+                        </PlayerStatusCell>
+                      </TableCell>
+                    );
+                  })}
                   {isOrganizer && onToggleComplete && (
                       <TableCell className="w-[120px] text-center sticky right-0 z-10 bg-inherit border-l">
                           {isComplete ? (
@@ -211,6 +218,9 @@ export function RoundsTable({
               <CardContent className="space-y-3">
                 {players.map(player => {
                   const status = round.playerStatus[player.id];
+                  if (status === undefined) {
+                    return null; // Don't show players who weren't in the round on mobile
+                  }
                   const displayString = getStatusString(status) || <span className="text-muted-foreground">Not set</span>;
                   
                   return (
@@ -241,3 +251,5 @@ export function RoundsTable({
     </>
   );
 }
+
+    

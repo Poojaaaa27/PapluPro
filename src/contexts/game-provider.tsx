@@ -41,6 +41,7 @@ const mockRounds: GameRound[] = Array.from({ length: 15 }, (_, i) => ({
 interface GameContextType {
   players: Player[];
   updatePlayers: (newPlayers: Player[]) => void;
+  addPlayer: (playerName: string) => void;
   rounds: GameRound[];
   setRounds: React.Dispatch<React.SetStateAction<GameRound[]>>;
   addRound: () => void;
@@ -85,14 +86,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const recalculateAllRounds = useCallback((currentRounds: GameRound[], currentPlayers: Player[]) => {
     return currentRounds.map(r => {
-      // Filter out statuses of players who are no longer in the game
+      // Filter out statuses of players who are no longer in the game,
+      // but keep the status if it exists.
       const relevantPlayerStatus: Record<string, PlayerStatus> = {};
       currentPlayers.forEach(p => {
         if (r.playerStatus[p.id]) {
           relevantPlayerStatus[p.id] = r.playerStatus[p.id];
-        } else {
-          // If a new player was added, give them a default status for existing rounds
-          relevantPlayerStatus[p.id] = { ...defaultPlayerStatus };
         }
       });
       
@@ -104,9 +103,35 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const updatePlayers = useCallback((newPlayers: Player[]) => {
     setPlayers(newPlayers);
-    // When players update, we need to recalculate all rounds with the new player list
-    setRounds(prevRounds => recalculateAllRounds(prevRounds, newPlayers));
-  }, [recalculateAllRounds]);
+    // When players update (e.g. from team selection), recalculate all rounds and reset statuses for all rounds.
+    setRounds(prevRounds => prevRounds.map(r => {
+        const newPlayerStatus = getDefaultPlayerStatuses(newPlayers);
+        const newScores = calculateRoundScores(newPlayerStatus, newPlayers, rules, gameDetails.is3CardGame);
+        return { ...r, playerStatus: newPlayerStatus, scores: newScores, isComplete: false };
+    }));
+  }, [recalculateAllRounds, rules, gameDetails.is3CardGame]);
+
+  const addPlayer = useCallback((playerName: string) => {
+    const newPlayer: Player = {
+        id: `${Date.now()}-${Math.random()}`,
+        name: playerName,
+    };
+    
+    setPlayers(prevPlayers => [...prevPlayers, newPlayer]);
+    
+    setRounds(prevRounds => {
+        const currentRoundIndex = prevRounds.findIndex(r => !r.isComplete);
+        return prevRounds.map((round, index) => {
+            // Only add the new player to the current and future rounds.
+            if (index >= currentRoundIndex && currentRoundIndex !== -1) {
+                const newPlayerStatus = { ...round.playerStatus, [newPlayer.id]: { ...defaultPlayerStatus } };
+                const newScores = calculateRoundScores(newPlayerStatus, [...players, newPlayer], rules, gameDetails.is3CardGame);
+                return { ...round, playerStatus: newPlayerStatus, scores: newScores };
+            }
+            return round;
+        });
+    });
+  }, [players, rules, gameDetails.is3CardGame]);
 
 
   const handleStatusChange = useCallback((roundId: number, playerId: string, newStatus: PlayerStatus) => {
@@ -120,7 +145,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
             return newStates;
           });
           const newPlayerStatus = { ...r.playerStatus, [playerId]: newStatus };
-          const newScores = calculateRoundScores(newPlayerStatus, players, rules, gameDetails.is3CardGame);
+          
+          // The list of players for this specific round is derived from its playerStatus keys
+          const roundPlayerIds = Object.keys(newPlayerStatus);
+          const roundPlayers = players.filter(p => roundPlayerIds.includes(p.id));
+
+          const newScores = calculateRoundScores(newPlayerStatus, roundPlayers, rules, gameDetails.is3CardGame);
           return { ...r, playerStatus: newPlayerStatus, scores: newScores };
         }
         return r;
@@ -140,13 +170,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const roundToCancel = rounds.find(r => r.id === roundId);
     if (!roundToCancel) return;
 
+    // The players relevant for THIS round
+    const roundPlayers = players.filter(p => Object.keys(roundToCancel.playerStatus).includes(p.id));
+
     // Check if we need to UN-cancel
     if (preCanceledStates[roundId]) {
       setRounds(prevRounds =>
         prevRounds.map(r => {
           if (r.id === roundId) {
             const restoredPlayerStatus = preCanceledStates[roundId];
-            const newScores = calculateRoundScores(restoredPlayerStatus, players, rules, gameDetails.is3CardGame);
+            const newScores = calculateRoundScores(restoredPlayerStatus, roundPlayers, rules, gameDetails.is3CardGame);
             return { ...r, playerStatus: restoredPlayerStatus, scores: newScores };
           }
           return r;
@@ -170,7 +203,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       return prevRounds.map(r => {
         if (r.id === roundId) {
           const newPlayerStatus: Record<string, PlayerStatus> = {};
-          players.forEach(p => {
+          roundPlayers.forEach(p => {
             const originalStatus = r.playerStatus[p.id];
             
             // Default to a '0 point' playing status
@@ -183,15 +216,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
             // If it's a 3-card game and this player was the 3C winner, preserve only that.
             if (gameDetails.is3CardGame && originalStatus?.is3C) {
               newPlayerStatus[p.id] = {
-                ...canceledStatus,
+                ...defaultPlayerStatus, // Start fresh
                 is3C: true,
+                outcome: 'Playing',
                 points: null, // Let score parser handle 3c logic without points interference
               };
             } else {
               newPlayerStatus[p.id] = canceledStatus;
             }
           });
-          const newScores = calculateRoundScores(newPlayerStatus, players, rules, gameDetails.is3CardGame);
+          const newScores = calculateRoundScores(newPlayerStatus, roundPlayers, rules, gameDetails.is3CardGame);
           return { ...r, playerStatus: newPlayerStatus, scores: newScores, isComplete: false };
         }
         return r;
@@ -243,6 +277,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const value = {
     players,
     updatePlayers,
+    addPlayer,
     rounds,
     setRounds,
     addRound,
@@ -262,3 +297,5 @@ export function GameProvider({ children }: { children: ReactNode }) {
     </GameContext.Provider>
   );
 }
+
+    
