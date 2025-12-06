@@ -21,6 +21,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
+    // This code now runs only on the client, after the initial render.
+    setLoading(true);
     try {
       const storedUser = localStorage.getItem("paplu-pro-user");
       if (storedUser) {
