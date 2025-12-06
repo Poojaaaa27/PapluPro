@@ -42,6 +42,7 @@ interface GameContextType {
   players: Player[];
   updatePlayers: (newPlayers: Player[]) => void;
   addPlayer: (playerName: string) => void;
+  removePlayer: (playerId: string) => void;
   rounds: GameRound[];
   setRounds: React.Dispatch<React.SetStateAction<GameRound[]>>;
   addRound: () => void;
@@ -102,42 +103,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
 
   const updatePlayers = useCallback((newPlayers: Player[]) => {
-    const oldPlayerIds = new Set(players.map(p => p.id));
-    const newPlayerIds = new Set(newPlayers.map(p => p.id));
-
-    // A player was removed if an ID from the old set is not in the new set.
-    const wasPlayerRemoved = [...oldPlayerIds].some(id => !newPlayerIds.has(id));
-    
     setPlayers(newPlayers);
-    
-    if (wasPlayerRemoved) {
-      // If a player was removed, we need to adjust only current and future rounds.
-      setRounds(prevRounds => {
-        const currentRoundIndex = prevRounds.findIndex(r => !r.isComplete);
-        return prevRounds.map((round, index) => {
-            // Only modify uncompleted rounds
-            if (index >= currentRoundIndex && currentRoundIndex !== -1) {
-                const newPlayerStatus: Record<string, PlayerStatus> = {};
-                newPlayers.forEach(p => {
-                  newPlayerStatus[p.id] = round.playerStatus[p.id] || { ...defaultPlayerStatus };
-                });
-                const newScores = calculateRoundScores(newPlayerStatus, newPlayers, rules, gameDetails.is3CardGame);
-                return { ...round, playerStatus: newPlayerStatus, scores: newScores };
-            }
-            // Keep completed rounds as they were
-            return round;
-        });
-      });
-    } else {
-      // If players were added or just reordered, reset all rounds for simplicity.
-      // This is the behavior when selecting a new team.
+      // When a team is selected, reset the entire game state for them
       setRounds(prevRounds => prevRounds.map(r => {
           const newPlayerStatus = getDefaultPlayerStatuses(newPlayers);
           const newScores = calculateRoundScores(newPlayerStatus, newPlayers, rules, gameDetails.is3CardGame);
           return { ...r, playerStatus: newPlayerStatus, scores: newScores, isComplete: false };
       }));
-    }
-  }, [players, rules, gameDetails.is3CardGame]);
+  }, [rules, gameDetails.is3CardGame]);
 
   const addPlayer = useCallback((playerName: string) => {
     const newPlayer: Player = {
@@ -154,7 +127,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
             // Only add the new player to the current and future rounds.
             if (index >= currentRoundIndex && currentRoundIndex !== -1) {
                 const newPlayerStatus = { ...round.playerStatus, [newPlayer.id]: { ...defaultPlayerStatus } };
-                const newScores = calculateRoundScores(newPlayerStatus, updatedPlayers, rules, gameDetails.is3CardGame);
+                const roundPlayers = updatedPlayers.filter(p => newPlayerStatus[p.id]);
+                const newScores = calculateRoundScores(newPlayerStatus, roundPlayers, rules, gameDetails.is3CardGame);
                 return { ...round, playerStatus: newPlayerStatus, scores: newScores };
             }
             return round;
@@ -162,6 +136,27 @@ export function GameProvider({ children }: { children: ReactNode }) {
     });
   }, [players, rules, gameDetails.is3CardGame]);
 
+  const removePlayer = useCallback((playerId: string) => {
+    const updatedPlayers = players.filter(p => p.id !== playerId);
+    setPlayers(updatedPlayers);
+
+    setRounds(prevRounds => {
+      const currentRoundIndex = prevRounds.findIndex(r => !r.isComplete);
+      return prevRounds.map((round, index) => {
+        // Only modify uncompleted rounds
+        if (index >= currentRoundIndex && currentRoundIndex !== -1) {
+            const newPlayerStatus: Record<string, PlayerStatus> = { ...round.playerStatus };
+            delete newPlayerStatus[playerId];
+            const roundPlayers = updatedPlayers.filter(p => newPlayerStatus[p.id]);
+            const newScores = calculateRoundScores(newPlayerStatus, roundPlayers, rules, gameDetails.is3CardGame);
+            return { ...round, playerStatus: newPlayerStatus, scores: newScores };
+        }
+        // Keep completed rounds as they were, but scores might need recalculation if totals are affected
+        // For simplicity, we assume removing a player doesn't change historical totals for now.
+        return round;
+      });
+    });
+  }, [players, rules, gameDetails.is3CardGame]);
 
   const handleStatusChange = useCallback((roundId: number, playerId: string, newStatus: PlayerStatus) => {
     setRounds(prevRounds => {
@@ -235,23 +230,20 @@ export function GameProvider({ children }: { children: ReactNode }) {
           roundPlayers.forEach(p => {
             const originalStatus = r.playerStatus[p.id];
             
-            // Default to a '0 point' playing status
-            const canceledStatus: PlayerStatus = {
-              ...defaultPlayerStatus,
-              outcome: 'Playing',
-              points: 0,
-            };
-
             // If it's a 3-card game and this player was the 3C winner, preserve only that.
             if (gameDetails.is3CardGame && originalStatus?.is3C) {
               newPlayerStatus[p.id] = {
                 ...defaultPlayerStatus, // Start fresh
                 is3C: true,
                 outcome: 'Playing',
-                points: null, // Let score parser handle 3c logic without points interference
+                points: null,
               };
             } else {
-              newPlayerStatus[p.id] = canceledStatus;
+               newPlayerStatus[p.id] = {
+                ...defaultPlayerStatus,
+                outcome: 'Playing',
+                points: 0,
+               };
             }
           });
           const newScores = calculateRoundScores(newPlayerStatus, roundPlayers, rules, gameDetails.is3CardGame);
@@ -307,6 +299,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     players,
     updatePlayers,
     addPlayer,
+    removePlayer,
     rounds,
     setRounds,
     addRound,
@@ -326,3 +319,5 @@ export function GameProvider({ children }: { children: ReactNode }) {
     </GameContext.Provider>
   );
 }
+
+    

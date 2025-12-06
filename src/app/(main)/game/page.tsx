@@ -6,7 +6,7 @@ import { RoundsTable } from "@/components/game/rounds-table";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useGame } from "@/hooks/use-game";
-import { Save, Trash2, PlusCircle, XCircle, RotateCcw, UserPlus } from "lucide-react";
+import { Save, Trash2, PlusCircle, XCircle, RotateCcw, UserPlus, UserMinus } from "lucide-react";
 import { useHistory } from "@/hooks/use-history";
 import { useToast } from "@/hooks/use-toast";
 import type { GameSession, Player } from "@/lib/types";
@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Gamepad2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -32,6 +32,7 @@ export default function GamePage() {
     cancelRound,
     isRoundCanceled,
     addPlayer,
+    removePlayer,
   } = useGame();
   const { addGameSession } = useHistory();
   const { toast } = useToast();
@@ -108,6 +109,20 @@ export default function GamePage() {
       });
     }
   };
+
+  const handleRemovePlayer = (playerId: string) => {
+    if (isOrganizer) {
+      const playerToRemove = players.find(p => p.id === playerId);
+      if (playerToRemove) {
+        removePlayer(playerId);
+        toast({
+          variant: "destructive",
+          title: "Player Removed",
+          description: `"${playerToRemove.name}" has been removed from the current and future rounds.`,
+        });
+      }
+    }
+  }
 
   const handleSaveGame = () => {
     const completedRounds = rounds.filter(r => r.isComplete);
@@ -266,20 +281,36 @@ export default function GamePage() {
       {isOrganizer && currentRound && (
         <Card>
           <CardHeader>
-            <CardTitle className="font-headline">Add Player Mid-Game</CardTitle>
+            <CardTitle className="font-headline">Manage Players</CardTitle>
+            <CardDescription>Add or remove players from the current game.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-                <Label htmlFor="new-player-name" className="sr-only">Player Name</Label>
-                <Input 
-                  id="new-player-name"
-                  value={newPlayerName} 
-                  onChange={(e) => setNewPlayerName(e.target.value)} 
-                  placeholder="Enter new player's name" 
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddPlayer()}
-                />
-                <Button onClick={handleAddPlayer}><UserPlus /> Add</Button>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-player-name" className="font-semibold">Add Player</Label>
+              <div className="flex items-center gap-2">
+                  <Input 
+                    id="new-player-name"
+                    value={newPlayerName} 
+                    onChange={(e) => setNewPlayerName(e.target.value)} 
+                    placeholder="Enter new player's name" 
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddPlayer()}
+                  />
+                  <Button onClick={handleAddPlayer}><UserPlus /> Add</Button>
+                </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="font-semibold">Remove Player</Label>
+              <div className="space-y-2 max-h-32 overflow-y-auto pr-2">
+                  {players.map((player) => (
+                    <div key={player.id} className="flex items-center justify-between p-2 rounded-md bg-muted/50">
+                      <span className="font-medium">{player.name}</span>
+                      <Button variant="ghost" size="icon" onClick={() => handleRemovePlayer(player.id)}>
+                        <UserMinus className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
               </div>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -317,5 +348,7 @@ export default function GamePage() {
     </div>
   );
 }
+
+    
 
     
