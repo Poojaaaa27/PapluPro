@@ -26,6 +26,8 @@ export function ScoresTable({ rounds, players, totalScores }: ScoresTableProps) 
     return Object.values(round.scores).reduce((sum, score) => sum + score, 0);
   };
 
+  const completedRounds = rounds.filter(r => r.isComplete);
+
   return (
     <div className="space-y-4">
       <Card>
@@ -80,7 +82,7 @@ export function ScoresTable({ rounds, players, totalScores }: ScoresTableProps) 
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rounds.map((round) => {
+                {completedRounds.map((round) => {
                   const roundTotal = getRoundTotal(round);
                   // Only show score row if the round has players in it.
                   const hasPlayersInRound = Object.keys(round.playerStatus).length > 0;
@@ -103,7 +105,7 @@ export function ScoresTable({ rounds, players, totalScores }: ScoresTableProps) 
                                 {roundScore}
                               </span>
                             ) : (
-                                "" // Empty cell if player wasn't in this round
+                                <span className="text-muted-foreground">-</span>
                             )}
                           </TableCell>
                         );
@@ -122,5 +124,3 @@ export function ScoresTable({ rounds, players, totalScores }: ScoresTableProps) 
     </div>
   );
 }
-
-    
