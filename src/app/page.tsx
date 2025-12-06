@@ -26,6 +26,7 @@ import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { useAuth } from "@/hooks/use-auth";
 import type { UserRole } from "@/lib/types";
 import { Spade } from "lucide-react";
+import { ClientOnly } from "@/components/client-only";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -53,52 +54,54 @@ export default function LoginPage() {
         data-ai-hint={bgImage.imageHint}
         priority
       />}
-      <Card className="w-full max-w-sm bg-card/80 backdrop-blur-sm">
-        <form onSubmit={handleLogin}>
-          <CardHeader className="text-center">
-            <div className="flex justify-center items-center gap-2 mb-2">
-              <Spade className="w-8 h-8 text-primary" />
-              <CardTitle className="font-headline text-4xl">Paplu Pro</CardTitle>
-            </div>
-            <CardDescription className="font-body">
-              Sign in to manage your games
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name" className="font-headline">Name</Label>
-              <Input
-                id="name"
-                type="text"
-                placeholder="Enter your name"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="role" className="font-headline">Role</Label>
-              <Select
-                value={role}
-                onValueChange={(value) => setRole(value as UserRole)}
-              >
-                <SelectTrigger id="role">
-                  <SelectValue placeholder="Select your role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="organizer">Organizer</SelectItem>
-                  <SelectItem value="viewer">Viewer</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button type="submit" className="w-full font-headline">
-              Enter
-            </Button>
-          </CardFooter>
-        </form>
-      </Card>
+      <ClientOnly>
+        <Card className="w-full max-w-sm bg-card/80 backdrop-blur-sm">
+          <form onSubmit={handleLogin}>
+            <CardHeader className="text-center">
+              <div className="flex justify-center items-center gap-2 mb-2">
+                <Spade className="w-8 h-8 text-primary" />
+                <CardTitle className="font-headline text-4xl">Paplu Pro</CardTitle>
+              </div>
+              <CardDescription className="font-body">
+                Sign in to manage your games
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="font-headline">Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Enter your name"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="role" className="font-headline">Role</Label>
+                <Select
+                  value={role}
+                  onValueChange={(value) => setRole(value as UserRole)}
+                >
+                  <SelectTrigger id="role">
+                    <SelectValue placeholder="Select your role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="organizer">Organizer</SelectItem>
+                    <SelectItem value="viewer">Viewer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button type="submit" className="w-full font-headline">
+                Enter
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+      </ClientOnly>
     </main>
   );
 }
