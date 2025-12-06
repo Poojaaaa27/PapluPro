@@ -102,14 +102,42 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
 
   const updatePlayers = useCallback((newPlayers: Player[]) => {
+    const oldPlayerIds = new Set(players.map(p => p.id));
+    const newPlayerIds = new Set(newPlayers.map(p => p.id));
+
+    // A player was removed if an ID from the old set is not in the new set.
+    const wasPlayerRemoved = [...oldPlayerIds].some(id => !newPlayerIds.has(id));
+    
     setPlayers(newPlayers);
-    // When players update (e.g. from team selection), recalculate all rounds and reset statuses for all rounds.
-    setRounds(prevRounds => prevRounds.map(r => {
-        const newPlayerStatus = getDefaultPlayerStatuses(newPlayers);
-        const newScores = calculateRoundScores(newPlayerStatus, newPlayers, rules, gameDetails.is3CardGame);
-        return { ...r, playerStatus: newPlayerStatus, scores: newScores, isComplete: false };
-    }));
-  }, [recalculateAllRounds, rules, gameDetails.is3CardGame]);
+    
+    if (wasPlayerRemoved) {
+      // If a player was removed, we need to adjust only current and future rounds.
+      setRounds(prevRounds => {
+        const currentRoundIndex = prevRounds.findIndex(r => !r.isComplete);
+        return prevRounds.map((round, index) => {
+            // Only modify uncompleted rounds
+            if (index >= currentRoundIndex && currentRoundIndex !== -1) {
+                const newPlayerStatus: Record<string, PlayerStatus> = {};
+                newPlayers.forEach(p => {
+                  newPlayerStatus[p.id] = round.playerStatus[p.id] || { ...defaultPlayerStatus };
+                });
+                const newScores = calculateRoundScores(newPlayerStatus, newPlayers, rules, gameDetails.is3CardGame);
+                return { ...round, playerStatus: newPlayerStatus, scores: newScores };
+            }
+            // Keep completed rounds as they were
+            return round;
+        });
+      });
+    } else {
+      // If players were added or just reordered, reset all rounds for simplicity.
+      // This is the behavior when selecting a new team.
+      setRounds(prevRounds => prevRounds.map(r => {
+          const newPlayerStatus = getDefaultPlayerStatuses(newPlayers);
+          const newScores = calculateRoundScores(newPlayerStatus, newPlayers, rules, gameDetails.is3CardGame);
+          return { ...r, playerStatus: newPlayerStatus, scores: newScores, isComplete: false };
+      }));
+    }
+  }, [players, rules, gameDetails.is3CardGame]);
 
   const addPlayer = useCallback((playerName: string) => {
     const newPlayer: Player = {
@@ -117,7 +145,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
         name: playerName,
     };
     
-    setPlayers(prevPlayers => [...prevPlayers, newPlayer]);
+    const updatedPlayers = [...players, newPlayer];
+    setPlayers(updatedPlayers);
     
     setRounds(prevRounds => {
         const currentRoundIndex = prevRounds.findIndex(r => !r.isComplete);
@@ -125,7 +154,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
             // Only add the new player to the current and future rounds.
             if (index >= currentRoundIndex && currentRoundIndex !== -1) {
                 const newPlayerStatus = { ...round.playerStatus, [newPlayer.id]: { ...defaultPlayerStatus } };
-                const newScores = calculateRoundScores(newPlayerStatus, [...players, newPlayer], rules, gameDetails.is3CardGame);
+                const newScores = calculateRoundScores(newPlayerStatus, updatedPlayers, rules, gameDetails.is3CardGame);
                 return { ...round, playerStatus: newPlayerStatus, scores: newScores };
             }
             return round;
@@ -297,5 +326,3 @@ export function GameProvider({ children }: { children: ReactNode }) {
     </GameContext.Provider>
   );
 }
-
-    
